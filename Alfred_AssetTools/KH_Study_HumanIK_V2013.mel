@@ -1,0 +1,2541 @@
+// Owen Burgess
+// <script src="http://player.ooyala.com/player.js?deepLinkEmbedCode=NpMXE0MzrE7e6Gcp7jMXXwwmiofrF1uX&height=360&embedCode=NpMXE0MzrE7e6Gcp7jMXXwwmiofrF1uX&video_pcode=o3OG46qoFLfL76WkTkb1a9k23qBd&width=640"></script>
+// file -r -rfn "zombieRN" -ns "zombie" "C:/..."
+
+// 캐릭터 콘트롤 창 띄움
+    HIKCharacterControlsTool;
+
+// 현재 선택한 캐릭터로 UI갱신
+    $gHIKCurrentCharacter = "GIGN2:HIK";
+    hikUpdateCurrentCharacterFromScene();
+
+// 현재 캐릭터의 콘트롤 셋 알아옴
+    GetControlSetForCharacter( hikGetCurrentCharacter( ))
+
+// 연결
+    // 연결
+    mayaHIKsetCharacterInput( "GIGN4:HIK", "MC:MC" );
+    hikUpdateCurrentCharacterFromScene();
+
+
+
+    // 연결된 캐릭터 노드 알아옴.
+    $character = hikGetCurrentCharacter();
+    $srcCharacter = mayaHIKgetCharacterInput( $character );
+    mayaHIKgetCharacterInput( hikGetCurrentCharacter() )
+
+    // Source를 ControlRig로 변경
+    mayaHIKsetRigInput( hikGetCurrentCharacter() )
+
+// HIKCharacterNode 가져옴
+    // 방법 1
+    listConnections -type "HIKCharacterNode"
+
+    // 방법 2
+    string $namespace = "ARCTIC3";
+    string $ls[] = `ls -type "HIKCharacterNode" ($namespace+":*")`;
+    string $HIK = $ls[0]
+
+    // 선택한 레퍼런스 중 HIK노드 얻어옴
+    string $sel[] = `ls -sl`;
+    string $referenceNode = `referenceQuery -referenceNode $sel[0]`; // 레퍼런스 노드 알아옴.
+    string $nodes[] = `referenceQuery -nodes $referenceNode`; // 레퍼런스 관련 노드
+    string $ls[] = `ls -type "HIKCharacterNode" $nodes`; // 그중 HIK노드 알아옴.
+    string $HIK = $ls[0]
+
+// 2013 HIK 컨트롤 리그창 선택한 캐릭터 자동 어싸인~ : 네임스페이스가 있어야 작동함.
+    HIKCharacterControlsTool;
+
+    global proc HIK_tool_AutoSelect_Character() {
+        global string $gHIKCurrentCharacter;
+        //print "HIK_tool_AutoSelect_Character:call";
+
+        // 선택한 오브젝트의
+        string $sel[] = `ls -sl`;
+        if (size($sel)==0) return;
+
+        // 네임스페이스를 알아오고
+        string $buffer[];
+        tokenize $sel[0] ":" $buffer;
+        if (!size($buffer)>1) return;
+        string $namespace = $buffer[0];
+
+        // 네임스페이스안에 있는 HIKCharacterNode를 알아오고.
+        $sel = `ls -type "HIKCharacterNode" ($namespace+":*")`;
+        if (size($sel)==0) return;
+        $HIKCharacterNode = $sel[0];
+        //print ("$HIKCharacterNode = \""+$HIKCharacterNode+"\"\n");
+
+        // 현재 캐릭터 변수에 집어넣고 UI갱신
+        $gHIKCurrentCharacter = $HIKCharacterNode;
+        hikUpdateCurrentCharacterFromScene();
+    }
+
+    // scriptJob Kill
+    string $listJobs[] = `scriptJob -listJobs`;
+    for ($i=0; $i<size($listJobs); $i++) {
+        // print ("["+$i+"] "+$listJobs[$i]+"\n");
+        if (`gmatch $listJobs[$i] "*HIK_tool_AutoSelect_Character*"`) {
+            string $buffer[];
+            tokenize $listJobs[$i] ":" $buffer;
+            int $jobNum = int($buffer[0]);
+
+            scriptJob -kill $jobNum -force;
+            //print ("scriptJob ("+$jobNum+") Killed ! \n");
+        }
+    }
+
+    // 스크롤 레이아웃에 스크립트 잡 내용 붙임
+    if (`dockControl -q -exists "hikCharacterControlsDock"`)
+        scriptJob -parent "hikCharacterControlsDock" -event "SelectionChanged" "HIK_tool_AutoSelect_Character";
+
+// 캐릭터 베이크
+    hikBakeCharacter()
+    hikBakeToControlRig( int $displayOptions )
+
+// 현재 캐릭터 가져옴.
+    hikGetCurrentCharacter()
+
+// HIK 노드 선택
+    selectHIKCharacterToolCharacterProperties()
+    selectHIKCharacterToolCharacterDefinition()
+
+    string $controlSet = `GetControlSetForCharacter( hikGetCurrentCharacter( ))`;
+    int $includeAux = true;
+    int $warnOnEmpty = false;
+
+    getFkNodesFromControlSet( $controlSet)
+    getIkNodesFromControlSet( $controlSet, $includeAux)
+
+// 캐릭터 롹이 걸렸는지 확인
+    hikIsDefinitionLocked( hikGetCurrentCharacter() )
+
+// 현재 인풋타입 검사
+    mayaHIKgetInputType( hikGetCurrentCharacter() )
+
+// To set the current character
+    //in this example I am setting Character 2
+    $gCurrentCharacter = "Character2";
+    refreshAllCharacterLists();
+
+// Once the character is set, we can use it with these commands
+    // Locking the Character definition
+    characterizationLock();
+
+    // Creating a new Characterization
+    characterizationCreate();
+
+    // 삭제
+    deleteCharacter( "Character1" );
+
+    // Creating a ControlRig
+    characterizationControlRigCreate();
+
+    //Deleting a Control Rig
+    characterizationControlRigDelete();
+
+    //Using the skeleton generator
+    skeletonGeneratorToolNewCharacter;
+
+// Setting the source for a HumanIK character
+    //to control rig
+    mayaHIKsetRigInput( "Character1" );
+    updateHIKCharacterToolEnableCheckBox();
+
+    //to stance pose
+    mayaHIKsetStanceInput( "Character2" );
+    updateHIKCharacterToolEnableCheckBox();
+
+    //to set to a character input
+    mayaHIKsetCharacterInput( "Character1","Character2" );
+    updateHIKCharacterToolEnableCheckBox();
+
+// Choosing a keying mode, i.e. full-body, partial, or selection
+    //full body
+    optionVar -intValue keyFullBody 1; setKeyingMode( );
+
+    // body parts
+    optionVar -intValue keyFullBody 2; setKeyingMode( );
+
+    //selection
+    optionVar -intValue keyFullBody 3; setKeyingMode( );
+
+// Turning on and off pinning for individual effectors
+    //Here I am Character1_Ctrl_RightWristEffector as the effector
+
+    //unpinned
+    setAttr "Character1_Ctrl_RightWristEffector.pinning" 0;
+
+    //pin Translate
+    setAttr "Character1_Ctrl_RightWristEffector.pinning" 1;
+
+    //pin Rotate
+    setAttr "Character1_Ctrl_RightWristEffector.pinning" 2;
+
+    //pin all
+    setAttr "Character1_Ctrl_RightWristEffector.pinning" 3;
+
+// Baking the retarget to the control rig or skeleton
+    //Bake to Skeleton without opening the options
+    hikBakeToSkeleton 0;
+
+    //Bake to Skeleton with opening the options
+    hikBakeToSkeleton 1;
+
+    //Bake to Control Rig without opening the options
+    hikBakeToControlRig 0;
+
+    //Bake to Skeleton without opening the options
+    hikBakeToControlRig 1;
+
+//--------------------
+// 캐릭터라이즈 UI 명령
+    HIKCharacterizationTool;
+
+// 본 자동매핑
+    characterizationMapBones();
+
+//-------------------------------------------------------------
+// 캐릭터 매핑 : 마야 샘플 Amelia
+//-------------------------------------------------------------
+    // Maya FBX - Amelia
+    // 네임 스페이스 조정
+        {
+            namespace -set ":";
+            while (size (`namespaceInfo -lon`) > size(`file -q -r -shn`) + 2) {
+                for ($nsReach in `namespaceInfo -lon`) {
+                    if ($nsReach == "UI" || $nsReach =="shared" || (catchQuiet (`namespace -f -mv $nsReach ":"`))==1) {
+                        //print "You have encountered UI or Shared namespace or a namespace coming from a reference file. Continuing.";
+                        continue;
+                    } else {
+                        namespace -rm $nsReach;
+                    }
+                }
+            }
+        }
+
+    //
+        select -r Hips;
+
+    // 슬라이더 조정
+        {
+            string $sel[] = `ls -sl`;
+            float $keyframe[] = `keyframe -q -timeChange ($sel[0]+".rx")`;		// "Hips"의 첫번째 키프레임에서
+
+            playbackOptions -min ($keyframe[0]-10) -max $keyframe[size($keyframe)-1];
+            currentTime ($keyframe[0]-10);
+        }
+
+    // T포즈
+        if (`objExists Hips`) {
+            //if (!`getAttr -l Hips.tx`) setAttr Hips.tx 106.805397;
+            //if (!`getAttr -l Hips.ty`) setAttr Hips.ty 92.51889801;
+            //if (!`getAttr -l Hips.tz`) setAttr Hips.tz -31.71610069;
+
+            if (!`getAttr -l Hips.rx`) setAttr Hips.rx 0;
+            if (!`getAttr -l Hips.ry`) setAttr Hips.ry 0;
+            if (!`getAttr -l Hips.rz`) setAttr Hips.rz 0;
+
+            if (!`getAttr -l Hips.sx`) setAttr Hips.sx 1;
+            if (!`getAttr -l Hips.sy`) setAttr Hips.sy 1;
+            if (!`getAttr -l Hips.sz`) setAttr Hips.sz 1;
+        }
+        if (`objExists Chest`) {
+            if (!`getAttr -l Chest.tx`) setAttr Chest.tx 0;
+            if (!`getAttr -l Chest.ty`) setAttr Chest.ty 8.117750168;
+            if (!`getAttr -l Chest.tz`) setAttr Chest.tz 0;
+
+            if (!`getAttr -l Chest.rx`) setAttr Chest.rx 0;
+            if (!`getAttr -l Chest.ry`) setAttr Chest.ry 0;
+            if (!`getAttr -l Chest.rz`) setAttr Chest.rz 0;
+
+            if (!`getAttr -l Chest.sx`) setAttr Chest.sx 1;
+            if (!`getAttr -l Chest.sy`) setAttr Chest.sy 1;
+            if (!`getAttr -l Chest.sz`) setAttr Chest.sz 1;
+        }
+        if (`objExists Chest2`) {
+            if (!`getAttr -l Chest2.tx`) setAttr Chest2.tx 0;
+            if (!`getAttr -l Chest2.ty`) setAttr Chest2.ty 9.648070335;
+            if (!`getAttr -l Chest2.tz`) setAttr Chest2.tz 0;
+
+            if (!`getAttr -l Chest2.rx`) setAttr Chest2.rx 0;
+            if (!`getAttr -l Chest2.ry`) setAttr Chest2.ry 0;
+            if (!`getAttr -l Chest2.rz`) setAttr Chest2.rz 0;
+
+            if (!`getAttr -l Chest2.sx`) setAttr Chest2.sx 1;
+            if (!`getAttr -l Chest2.sy`) setAttr Chest2.sy 1;
+            if (!`getAttr -l Chest2.sz`) setAttr Chest2.sz 1;
+        }
+        if (`objExists Chest3`) {
+            if (!`getAttr -l Chest3.tx`) setAttr Chest3.tx 0;
+            if (!`getAttr -l Chest3.ty`) setAttr Chest3.ty 9.648070335;
+            if (!`getAttr -l Chest3.tz`) setAttr Chest3.tz 0;
+
+            if (!`getAttr -l Chest3.rx`) setAttr Chest3.rx 0;
+            if (!`getAttr -l Chest3.ry`) setAttr Chest3.ry 0;
+            if (!`getAttr -l Chest3.rz`) setAttr Chest3.rz 0;
+
+            if (!`getAttr -l Chest3.sx`) setAttr Chest3.sx 1;
+            if (!`getAttr -l Chest3.sy`) setAttr Chest3.sy 1;
+            if (!`getAttr -l Chest3.sz`) setAttr Chest3.sz 1;
+        }
+        if (`objExists Chest4`) {
+            if (!`getAttr -l Chest4.tx`) setAttr Chest4.tx 0;
+            if (!`getAttr -l Chest4.ty`) setAttr Chest4.ty 9.88146019;
+            if (!`getAttr -l Chest4.tz`) setAttr Chest4.tz 0;
+
+            if (!`getAttr -l Chest4.rx`) setAttr Chest4.rx 0;
+            if (!`getAttr -l Chest4.ry`) setAttr Chest4.ry 0;
+            if (!`getAttr -l Chest4.rz`) setAttr Chest4.rz 0;
+
+            if (!`getAttr -l Chest4.sx`) setAttr Chest4.sx 1;
+            if (!`getAttr -l Chest4.sy`) setAttr Chest4.sy 1;
+            if (!`getAttr -l Chest4.sz`) setAttr Chest4.sz 1;
+        }
+        if (`objExists Neck`) {
+            if (!`getAttr -l Neck.tx`) setAttr Neck.tx 0;
+            if (!`getAttr -l Neck.ty`) setAttr Neck.ty 16.40048027;
+            if (!`getAttr -l Neck.tz`) setAttr Neck.tz 0;
+
+            if (!`getAttr -l Neck.rx`) setAttr Neck.rx 0;
+            if (!`getAttr -l Neck.ry`) setAttr Neck.ry 0;
+            if (!`getAttr -l Neck.rz`) setAttr Neck.rz 0;
+
+            if (!`getAttr -l Neck.sx`) setAttr Neck.sx 1;
+            if (!`getAttr -l Neck.sy`) setAttr Neck.sy 1;
+            if (!`getAttr -l Neck.sz`) setAttr Neck.sz 1;
+        }
+        if (`objExists Head`) {
+            if (!`getAttr -l Head.tx`) setAttr Head.tx 0;
+            if (!`getAttr -l Head.ty`) setAttr Head.ty 10.49561977;
+            if (!`getAttr -l Head.tz`) setAttr Head.tz 0;
+
+            if (!`getAttr -l Head.rx`) setAttr Head.rx 0;
+            if (!`getAttr -l Head.ry`) setAttr Head.ry 0;
+            if (!`getAttr -l Head.rz`) setAttr Head.rz 0;
+
+            if (!`getAttr -l Head.sx`) setAttr Head.sx 1;
+            if (!`getAttr -l Head.sy`) setAttr Head.sy 1;
+            if (!`getAttr -l Head.sz`) setAttr Head.sz 1;
+        }
+        if (`objExists Head_End`) {
+            if (!`getAttr -l Head_End.tx`) setAttr Head_End.tx 0;
+            if (!`getAttr -l Head_End.ty`) setAttr Head_End.ty 15.96127987;
+            if (!`getAttr -l Head_End.tz`) setAttr Head_End.tz 0;
+
+            if (!`getAttr -l Head_End.rx`) setAttr Head_End.rx 0;
+            if (!`getAttr -l Head_End.ry`) setAttr Head_End.ry 0;
+            if (!`getAttr -l Head_End.rz`) setAttr Head_End.rz 0;
+
+            if (!`getAttr -l Head_End.sx`) setAttr Head_End.sx 1;
+            if (!`getAttr -l Head_End.sy`) setAttr Head_End.sy 1;
+            if (!`getAttr -l Head_End.sz`) setAttr Head_End.sz 1;
+        }
+        if (`objExists RightCollar`) {
+            if (!`getAttr -l RightCollar.tx`) setAttr RightCollar.tx -2.417540073;
+            if (!`getAttr -l RightCollar.ty`) setAttr RightCollar.ty 10.88313961;
+            if (!`getAttr -l RightCollar.tz`) setAttr RightCollar.tz 0.5477399826;
+
+            if (!`getAttr -l RightCollar.rx`) setAttr RightCollar.rx 0;
+            if (!`getAttr -l RightCollar.ry`) setAttr RightCollar.ry 0;
+            if (!`getAttr -l RightCollar.rz`) setAttr RightCollar.rz 0;
+
+            if (!`getAttr -l RightCollar.sx`) setAttr RightCollar.sx 1;
+            if (!`getAttr -l RightCollar.sy`) setAttr RightCollar.sy 1;
+            if (!`getAttr -l RightCollar.sz`) setAttr RightCollar.sz 1;
+        }
+        if (`objExists RightShoulder`) {
+            if (!`getAttr -l RightShoulder.tx`) setAttr RightShoulder.tx -10.75718975;
+            if (!`getAttr -l RightShoulder.ty`) setAttr RightShoulder.ty 0;
+            if (!`getAttr -l RightShoulder.tz`) setAttr RightShoulder.tz 0;
+
+            if (!`getAttr -l RightShoulder.rx`) setAttr RightShoulder.rx 0;
+            if (!`getAttr -l RightShoulder.ry`) setAttr RightShoulder.ry 0;
+            if (!`getAttr -l RightShoulder.rz`) setAttr RightShoulder.rz -90;
+
+            if (!`getAttr -l RightShoulder.sx`) setAttr RightShoulder.sx 1;
+            if (!`getAttr -l RightShoulder.sy`) setAttr RightShoulder.sy 1;
+            if (!`getAttr -l RightShoulder.sz`) setAttr RightShoulder.sz 1;
+        }
+        if (`objExists RightElbow`) {
+            if (!`getAttr -l RightElbow.tx`) setAttr RightElbow.tx 0;
+            if (!`getAttr -l RightElbow.ty`) setAttr RightElbow.ty -30.98310089;
+            if (!`getAttr -l RightElbow.tz`) setAttr RightElbow.tz 0;
+
+            if (!`getAttr -l RightElbow.rx`) setAttr RightElbow.rx 0;
+            if (!`getAttr -l RightElbow.ry`) setAttr RightElbow.ry 0;
+            if (!`getAttr -l RightElbow.rz`) setAttr RightElbow.rz 0;
+
+            if (!`getAttr -l RightElbow.sx`) setAttr RightElbow.sx 1;
+            if (!`getAttr -l RightElbow.sy`) setAttr RightElbow.sy 1;
+            if (!`getAttr -l RightElbow.sz`) setAttr RightElbow.sz 1;
+        }
+        if (`objExists RightWrist`) {
+            if (!`getAttr -l RightWrist.tx`) setAttr RightWrist.tx 0;
+            if (!`getAttr -l RightWrist.ty`) setAttr RightWrist.ty -25.02345085;
+            if (!`getAttr -l RightWrist.tz`) setAttr RightWrist.tz 0;
+
+            if (!`getAttr -l RightWrist.rx`) setAttr RightWrist.rx 0;
+            if (!`getAttr -l RightWrist.ry`) setAttr RightWrist.ry 0;
+            if (!`getAttr -l RightWrist.rz`) setAttr RightWrist.rz 0;
+
+            if (!`getAttr -l RightWrist.sx`) setAttr RightWrist.sx 1;
+            if (!`getAttr -l RightWrist.sy`) setAttr RightWrist.sy 1;
+            if (!`getAttr -l RightWrist.sz`) setAttr RightWrist.sz 1;
+        }
+        if (`objExists RightWrist_End`) {
+            if (!`getAttr -l RightWrist_End.tx`) setAttr RightWrist_End.tx 0;
+            if (!`getAttr -l RightWrist_End.ty`) setAttr RightWrist_End.ty -7.817140102;
+            if (!`getAttr -l RightWrist_End.tz`) setAttr RightWrist_End.tz 0;
+
+            if (!`getAttr -l RightWrist_End.rx`) setAttr RightWrist_End.rx 0;
+            if (!`getAttr -l RightWrist_End.ry`) setAttr RightWrist_End.ry 0;
+            if (!`getAttr -l RightWrist_End.rz`) setAttr RightWrist_End.rz 0;
+
+            if (!`getAttr -l RightWrist_End.sx`) setAttr RightWrist_End.sx 1;
+            if (!`getAttr -l RightWrist_End.sy`) setAttr RightWrist_End.sy 1;
+            if (!`getAttr -l RightWrist_End.sz`) setAttr RightWrist_End.sz 1;
+        }
+        if (`objExists LeftCollar`) {
+            if (!`getAttr -l LeftCollar.tx`) setAttr LeftCollar.tx 2.417540073;
+            if (!`getAttr -l LeftCollar.ty`) setAttr LeftCollar.ty 10.88313961;
+            if (!`getAttr -l LeftCollar.tz`) setAttr LeftCollar.tz 0.5477399826;
+
+            if (!`getAttr -l LeftCollar.rx`) setAttr LeftCollar.rx 0;
+            if (!`getAttr -l LeftCollar.ry`) setAttr LeftCollar.ry 0;
+            if (!`getAttr -l LeftCollar.rz`) setAttr LeftCollar.rz 0;
+
+            if (!`getAttr -l LeftCollar.sx`) setAttr LeftCollar.sx 1;
+            if (!`getAttr -l LeftCollar.sy`) setAttr LeftCollar.sy 1;
+            if (!`getAttr -l LeftCollar.sz`) setAttr LeftCollar.sz 1;
+        }
+        if (`objExists LeftShoulder`) {
+            if (!`getAttr -l LeftShoulder.tx`) setAttr LeftShoulder.tx 10.75718975;
+            if (!`getAttr -l LeftShoulder.ty`) setAttr LeftShoulder.ty 0;
+            if (!`getAttr -l LeftShoulder.tz`) setAttr LeftShoulder.tz 0;
+
+            if (!`getAttr -l LeftShoulder.rx`) setAttr LeftShoulder.rx 0;
+            if (!`getAttr -l LeftShoulder.ry`) setAttr LeftShoulder.ry 0;
+            if (!`getAttr -l LeftShoulder.rz`) setAttr LeftShoulder.rz 90;
+
+            if (!`getAttr -l LeftShoulder.sx`) setAttr LeftShoulder.sx 1;
+            if (!`getAttr -l LeftShoulder.sy`) setAttr LeftShoulder.sy 1;
+            if (!`getAttr -l LeftShoulder.sz`) setAttr LeftShoulder.sz 1;
+        }
+        if (`objExists LeftElbow`) {
+            if (!`getAttr -l LeftElbow.tx`) setAttr LeftElbow.tx 0;
+            if (!`getAttr -l LeftElbow.ty`) setAttr LeftElbow.ty -30.98310089;
+            if (!`getAttr -l LeftElbow.tz`) setAttr LeftElbow.tz 0;
+
+            if (!`getAttr -l LeftElbow.rx`) setAttr LeftElbow.rx 0;
+            if (!`getAttr -l LeftElbow.ry`) setAttr LeftElbow.ry 0;
+            if (!`getAttr -l LeftElbow.rz`) setAttr LeftElbow.rz 0;
+
+            if (!`getAttr -l LeftElbow.sx`) setAttr LeftElbow.sx 1;
+            if (!`getAttr -l LeftElbow.sy`) setAttr LeftElbow.sy 1;
+            if (!`getAttr -l LeftElbow.sz`) setAttr LeftElbow.sz 1;
+        }
+        if (`objExists LeftWrist`) {
+            if (!`getAttr -l LeftWrist.tx`) setAttr LeftWrist.tx 0;
+            if (!`getAttr -l LeftWrist.ty`) setAttr LeftWrist.ty -25.02345085;
+            if (!`getAttr -l LeftWrist.tz`) setAttr LeftWrist.tz 0;
+
+            if (!`getAttr -l LeftWrist.rx`) setAttr LeftWrist.rx 0;
+            if (!`getAttr -l LeftWrist.ry`) setAttr LeftWrist.ry 0;
+            if (!`getAttr -l LeftWrist.rz`) setAttr LeftWrist.rz 0;
+
+            if (!`getAttr -l LeftWrist.sx`) setAttr LeftWrist.sx 1;
+            if (!`getAttr -l LeftWrist.sy`) setAttr LeftWrist.sy 1;
+            if (!`getAttr -l LeftWrist.sz`) setAttr LeftWrist.sz 1;
+        }
+        if (`objExists LeftWrist_End`) {
+            if (!`getAttr -l LeftWrist_End.tx`) setAttr LeftWrist_End.tx 0;
+            if (!`getAttr -l LeftWrist_End.ty`) setAttr LeftWrist_End.ty -7.817140102;
+            if (!`getAttr -l LeftWrist_End.tz`) setAttr LeftWrist_End.tz 0;
+
+            if (!`getAttr -l LeftWrist_End.rx`) setAttr LeftWrist_End.rx 0;
+            if (!`getAttr -l LeftWrist_End.ry`) setAttr LeftWrist_End.ry 0;
+            if (!`getAttr -l LeftWrist_End.rz`) setAttr LeftWrist_End.rz 0;
+
+            if (!`getAttr -l LeftWrist_End.sx`) setAttr LeftWrist_End.sx 1;
+            if (!`getAttr -l LeftWrist_End.sy`) setAttr LeftWrist_End.sy 1;
+            if (!`getAttr -l LeftWrist_End.sz`) setAttr LeftWrist_End.sz 1;
+        }
+        if (`objExists RightHip`) {
+            if (!`getAttr -l RightHip.tx`) setAttr RightHip.tx -8.670660019;
+            if (!`getAttr -l RightHip.ty`) setAttr RightHip.ty -4.596590042;
+            if (!`getAttr -l RightHip.tz`) setAttr RightHip.tz 2.267270088;
+
+            if (!`getAttr -l RightHip.rx`) setAttr RightHip.rx 0;
+            if (!`getAttr -l RightHip.ry`) setAttr RightHip.ry 0;
+            if (!`getAttr -l RightHip.rz`) setAttr RightHip.rz 0;
+
+            if (!`getAttr -l RightHip.sx`) setAttr RightHip.sx 1;
+            if (!`getAttr -l RightHip.sy`) setAttr RightHip.sy 1;
+            if (!`getAttr -l RightHip.sz`) setAttr RightHip.sz 1;
+        }
+        if (`objExists RightKnee`) {
+            if (!`getAttr -l RightKnee.tx`) setAttr RightKnee.tx 0;
+            if (!`getAttr -l RightKnee.ty`) setAttr RightKnee.ty -40.29415131;
+            if (!`getAttr -l RightKnee.tz`) setAttr RightKnee.tz 0;
+
+            if (!`getAttr -l RightKnee.rx`) setAttr RightKnee.rx 0;
+            if (!`getAttr -l RightKnee.ry`) setAttr RightKnee.ry 0;
+            if (!`getAttr -l RightKnee.rz`) setAttr RightKnee.rz 0;
+
+            if (!`getAttr -l RightKnee.sx`) setAttr RightKnee.sx 1;
+            if (!`getAttr -l RightKnee.sy`) setAttr RightKnee.sy 1;
+            if (!`getAttr -l RightKnee.sz`) setAttr RightKnee.sz 1;
+        }
+        if (`objExists RightAnkle`) {
+            if (!`getAttr -l RightAnkle.tx`) setAttr RightAnkle.tx 0;
+            if (!`getAttr -l RightAnkle.ty`) setAttr RightAnkle.ty -39.18888855;
+            if (!`getAttr -l RightAnkle.tz`) setAttr RightAnkle.tz 0;
+
+            if (!`getAttr -l RightAnkle.rx`) setAttr RightAnkle.rx 0;
+            if (!`getAttr -l RightAnkle.ry`) setAttr RightAnkle.ry 0;
+            if (!`getAttr -l RightAnkle.rz`) setAttr RightAnkle.rz 0;
+
+            if (!`getAttr -l RightAnkle.sx`) setAttr RightAnkle.sx 1;
+            if (!`getAttr -l RightAnkle.sy`) setAttr RightAnkle.sy 1;
+            if (!`getAttr -l RightAnkle.sz`) setAttr RightAnkle.sz 1;
+        }
+        if (`objExists RightToe`) {
+            if (!`getAttr -l RightToe.tx`) setAttr RightToe.tx 0;
+            if (!`getAttr -l RightToe.ty`) setAttr RightToe.ty -6.655340195;
+            if (!`getAttr -l RightToe.tz`) setAttr RightToe.tz 11.52740002;
+
+            if (!`getAttr -l RightToe.rx`) setAttr RightToe.rx 0;
+            if (!`getAttr -l RightToe.ry`) setAttr RightToe.ry 0;
+            if (!`getAttr -l RightToe.rz`) setAttr RightToe.rz 0;
+
+            if (!`getAttr -l RightToe.sx`) setAttr RightToe.sx 1;
+            if (!`getAttr -l RightToe.sy`) setAttr RightToe.sy 1;
+            if (!`getAttr -l RightToe.sz`) setAttr RightToe.sz 1;
+        }
+        if (`objExists RightToe_End`) {
+            if (!`getAttr -l RightToe_End.tx`) setAttr RightToe_End.tx 0;
+            if (!`getAttr -l RightToe_End.ty`) setAttr RightToe_End.ty 0;
+            if (!`getAttr -l RightToe_End.tz`) setAttr RightToe_End.tz 8.501959801;
+
+            if (!`getAttr -l RightToe_End.rx`) setAttr RightToe_End.rx 0;
+            if (!`getAttr -l RightToe_End.ry`) setAttr RightToe_End.ry 0;
+            if (!`getAttr -l RightToe_End.rz`) setAttr RightToe_End.rz 0;
+
+            if (!`getAttr -l RightToe_End.sx`) setAttr RightToe_End.sx 1;
+            if (!`getAttr -l RightToe_End.sy`) setAttr RightToe_End.sy 1;
+            if (!`getAttr -l RightToe_End.sz`) setAttr RightToe_End.sz 1;
+        }
+        if (`objExists LeftHip`) {
+            if (!`getAttr -l LeftHip.tx`) setAttr LeftHip.tx 8.670660019;
+            if (!`getAttr -l LeftHip.ty`) setAttr LeftHip.ty -4.596590042;
+            if (!`getAttr -l LeftHip.tz`) setAttr LeftHip.tz 2.267270088;
+
+            if (!`getAttr -l LeftHip.rx`) setAttr LeftHip.rx 0;
+            if (!`getAttr -l LeftHip.ry`) setAttr LeftHip.ry 0;
+            if (!`getAttr -l LeftHip.rz`) setAttr LeftHip.rz 0;
+
+            if (!`getAttr -l LeftHip.sx`) setAttr LeftHip.sx 1;
+            if (!`getAttr -l LeftHip.sy`) setAttr LeftHip.sy 1;
+            if (!`getAttr -l LeftHip.sz`) setAttr LeftHip.sz 1;
+        }
+        if (`objExists LeftKnee`) {
+            if (!`getAttr -l LeftKnee.tx`) setAttr LeftKnee.tx 0;
+            if (!`getAttr -l LeftKnee.ty`) setAttr LeftKnee.ty -40.29415131;
+            if (!`getAttr -l LeftKnee.tz`) setAttr LeftKnee.tz 0;
+
+            if (!`getAttr -l LeftKnee.rx`) setAttr LeftKnee.rx 0;
+            if (!`getAttr -l LeftKnee.ry`) setAttr LeftKnee.ry 0;
+            if (!`getAttr -l LeftKnee.rz`) setAttr LeftKnee.rz 0;
+
+            if (!`getAttr -l LeftKnee.sx`) setAttr LeftKnee.sx 1;
+            if (!`getAttr -l LeftKnee.sy`) setAttr LeftKnee.sy 1;
+            if (!`getAttr -l LeftKnee.sz`) setAttr LeftKnee.sz 1;
+        }
+        if (`objExists LeftAnkle`) {
+            if (!`getAttr -l LeftAnkle.tx`) setAttr LeftAnkle.tx 0;
+            if (!`getAttr -l LeftAnkle.ty`) setAttr LeftAnkle.ty -39.18888855;
+            if (!`getAttr -l LeftAnkle.tz`) setAttr LeftAnkle.tz 0;
+
+            if (!`getAttr -l LeftAnkle.rx`) setAttr LeftAnkle.rx 0;
+            if (!`getAttr -l LeftAnkle.ry`) setAttr LeftAnkle.ry 0;
+            if (!`getAttr -l LeftAnkle.rz`) setAttr LeftAnkle.rz 0;
+
+            if (!`getAttr -l LeftAnkle.sx`) setAttr LeftAnkle.sx 1;
+            if (!`getAttr -l LeftAnkle.sy`) setAttr LeftAnkle.sy 1;
+            if (!`getAttr -l LeftAnkle.sz`) setAttr LeftAnkle.sz 1;
+        }
+        if (`objExists LeftToe`) {
+            if (!`getAttr -l LeftToe.tx`) setAttr LeftToe.tx 0;
+            if (!`getAttr -l LeftToe.ty`) setAttr LeftToe.ty -6.655340195;
+            if (!`getAttr -l LeftToe.tz`) setAttr LeftToe.tz 11.52740002;
+
+            if (!`getAttr -l LeftToe.rx`) setAttr LeftToe.rx 0;
+            if (!`getAttr -l LeftToe.ry`) setAttr LeftToe.ry 0;
+            if (!`getAttr -l LeftToe.rz`) setAttr LeftToe.rz 0;
+
+            if (!`getAttr -l LeftToe.sx`) setAttr LeftToe.sx 1;
+            if (!`getAttr -l LeftToe.sy`) setAttr LeftToe.sy 1;
+            if (!`getAttr -l LeftToe.sz`) setAttr LeftToe.sz 1;
+        }
+        if (`objExists LeftToe_End`) {
+            if (!`getAttr -l LeftToe_End.tx`) setAttr LeftToe_End.tx 0;
+            if (!`getAttr -l LeftToe_End.ty`) setAttr LeftToe_End.ty 0;
+            if (!`getAttr -l LeftToe_End.tz`) setAttr LeftToe_End.tz 8.501959801;
+
+            if (!`getAttr -l LeftToe_End.rx`) setAttr LeftToe_End.rx 0;
+            if (!`getAttr -l LeftToe_End.ry`) setAttr LeftToe_End.ry 0;
+            if (!`getAttr -l LeftToe_End.rz`) setAttr LeftToe_End.rz 0;
+
+            if (!`getAttr -l LeftToe_End.sx`) setAttr LeftToe_End.sx 1;
+            if (!`getAttr -l LeftToe_End.sy`) setAttr LeftToe_End.sy 1;
+            if (!`getAttr -l LeftToe_End.sz`) setAttr LeftToe_End.sz 1;
+        }
+    // 힙 위치 조정
+        float $btm[] = `xform -q -ws -t LeftToe`;
+
+        selectKey -clear ;
+        selectKey -r -k Hips_translateY ;
+        float $val[] = `keyframe -q -valueChange`;
+        keyframe -animation keys -relative -valueChange (0 - $btm[1]) ;
+
+        selectKey -clear ;
+        selectKey -r -k Hips_translateZ ;
+        float $val[] = `keyframe -q -valueChange`;
+        keyframe -animation keys -relative -valueChange (0 - $val[0]) ;
+
+        selectKey -clear ;
+        selectKey -r -k Hips_translateX ;
+        float $val[] = `keyframe -q -valueChange`;
+        keyframe -animation keys -relative -valueChange (0 - $val[0]) ;
+
+    rename "Fbx_Root" "Reference";
+
+    characterizationCreate();
+    setCharacterObject("Reference","Character1",0,0);
+    setCharacterObject("Hips","Character1",1,0);
+    setCharacterObject("LeftHip","Character1",2,0);
+    setCharacterObject("LeftKnee","Character1",3,0);
+    setCharacterObject("LeftAnkle","Character1",4,0);
+    setCharacterObject("RightHip","Character1",5,0);
+    setCharacterObject("RightKnee","Character1",6,0);
+    setCharacterObject("RightAnkle","Character1",7,0);
+    setCharacterObject("Chest","Character1",8,0);
+    setCharacterObject("LeftShoulder","Character1",9,0);
+    setCharacterObject("LeftElbow","Character1",10,0);
+    setCharacterObject("LeftWrist","Character1",11,0);
+    setCharacterObject("RightShoulder","Character1",12,0);
+    setCharacterObject("RightElbow","Character1",13,0);
+    setCharacterObject("RightWrist","Character1",14,0);
+    setCharacterObject("Head","Character1",15,0);
+    setCharacterObject("LeftToe","Character1",16,0);
+    setCharacterObject("RightToe","Character1",17,0);
+    setCharacterObject("LeftCollar","Character1",18,0);
+    setCharacterObject("RightCollar","Character1",19,0);
+    setCharacterObject("Neck","Character1",20,0);
+    setCharacterObject("Chest2","Character1",23,0);
+    setCharacterObject("Chest3","Character1",24,0);
+    setCharacterObject("Chest4","Character1",25,0);
+    HIKCharacterizationTool;
+    characterizationLock();
+    rename "Character1" "HIK";
+
+    viewFit;
+
+    select -r Reference HIK ;
+
+    string $fbxFile = "Walk1Straight_t2";
+
+    file
+        -force
+        -options "precision=8;intValue=17;nodeNames=1;verboseUnits=0;whichRange=1;range=0:10;options=keys;hierarchy=below;controlPoints=1;shapes=1;helpPictures=0;useChannelBox=0;copyKeyCmd=-animation objects -option keys -hierarchy below -controlPoints 1 -shape 1 "
+        -typ "FBX export"
+        -pr -es ("F:/MotionBuilder/Maya Sample/"+$fbxFile+".fbx");
+
+    file -f -new;
+
+//-------------------------------------------------------------
+// 캐릭터 매핑 : 일반적인 이름 Hik 2013버전
+//-------------------------------------------------------------
+    setCharacterObject("Reference",             "Character1",0,0);
+    setCharacterObject("Hips",                  "Character1",1,0);
+    setCharacterObject("LeftUpLeg",             "Character1",2,0);
+    setCharacterObject("LeftLeg",               "Character1",3,0);
+    setCharacterObject("LeftFoot",              "Character1",4,0);
+    setCharacterObject("RightUpLeg",            "Character1",5,0);
+    setCharacterObject("RightLeg",              "Character1",6,0);
+    setCharacterObject("RightFoot",             "Character1",7,0);
+    setCharacterObject("Spine",                 "Character1",8,0);
+    setCharacterObject("LeftArm",               "Character1",9,0);
+    setCharacterObject("LeftForeArm",           "Character1",10,0);
+    setCharacterObject("LeftHand",              "Character1",11,0);
+    setCharacterObject("RightArm",              "Character1",12,0);
+    setCharacterObject("RightForeArm",          "Character1",13,0);
+    setCharacterObject("RightHand",             "Character1",14,0);
+    setCharacterObject("Head",                  "Character1",15,0);
+    setCharacterObject("LeftToeBase",           "Character1",16,0);
+    setCharacterObject("RightToeBase",          "Character1",17,0);
+    setCharacterObject("LeftShoulder",          "Character1",18,0);
+    setCharacterObject("RightShoulder",         "Character1",19,0);
+    setCharacterObject("Neck",                  "Character1",20,0);
+    setCharacterObject("LeftFingerBase",        "Character1",21,0);
+    setCharacterObject("RightFingerBase",       "Character1",22,0);
+    setCharacterObject("Spine1",                "Character1",23,0);
+    setCharacterObject("Spine2",                "Character1",24,0);
+    setCharacterObject("Spine3",                "Character1",25,0);
+    setCharacterObject("Spine4",                "Character1",26,0);
+    setCharacterObject("Spine5",                "Character1",27,0);
+    setCharacterObject("Spine6",                "Character1",28,0);
+    setCharacterObject("Spine7",                "Character1",29,0);
+    setCharacterObject("Spine8",                "Character1",30,0);
+    setCharacterObject("Spine9",                "Character1",31,0);
+    setCharacterObject("Neck1",                 "Character1",32,0);
+    setCharacterObject("Neck2",                 "Character1",33,0);
+    setCharacterObject("Neck3",                 "Character1",34,0);
+    setCharacterObject("Neck4",                 "Character1",35,0);
+    setCharacterObject("Neck5",                 "Character1",36,0);
+    setCharacterObject("Neck6",                 "Character1",37,0);
+    setCharacterObject("Neck7",                 "Character1",38,0);
+    setCharacterObject("Neck8",                 "Character1",39,0);
+    setCharacterObject("Neck9",                 "Character1",40,0);
+    setCharacterObject("LeftUpLegRoll",         "Character1",41,0);
+    setCharacterObject("LeftLegRoll",           "Character1",42,0);
+    setCharacterObject("RightUpLegRoll",        "Character1",43,0);
+    setCharacterObject("RightLegRoll",          "Character1",44,0);
+    setCharacterObject("LeftArmRoll",           "Character1",45,0);
+    setCharacterObject("LeftForeArmRoll",       "Character1",46,0);
+    setCharacterObject("RightArmRoll",          "Character1",47,0);
+    setCharacterObject("RightForeArmRoll",      "Character1",48,0);
+    setCharacterObject("HipsTranslation",       "Character1",49,0);
+    setCharacterObject("LeftHandThumb1",        "Character1",50,0);
+    setCharacterObject("LeftHandThumb2",        "Character1",51,0);
+    setCharacterObject("LeftHandThumb3",        "Character1",52,0);
+    setCharacterObject("LeftHandThumb4",        "Character1",53,0);
+    setCharacterObject("LeftHandIndex1",        "Character1",54,0);
+    setCharacterObject("LeftHandIndex2",        "Character1",55,0);
+    setCharacterObject("LeftHandIndex3",        "Character1",56,0);
+    setCharacterObject("LeftHandIndex4",        "Character1",57,0);
+    setCharacterObject("LeftHandMiddle1",       "Character1",58,0);
+    setCharacterObject("LeftHandMiddle2",       "Character1",59,0);
+    setCharacterObject("LeftHandMiddle3",       "Character1",60,0);
+    setCharacterObject("LeftHandMiddle4",       "Character1",61,0);
+    setCharacterObject("LeftHandRing1",         "Character1",62,0);
+    setCharacterObject("LeftHandRing2",         "Character1",63,0);
+    setCharacterObject("LeftHandRing3",         "Character1",64,0);
+    setCharacterObject("LeftHandRing4",         "Character1",65,0);
+    setCharacterObject("LeftHandPinky1",        "Character1",66,0);
+    setCharacterObject("LeftHandPinky2",        "Character1",67,0);
+    setCharacterObject("LeftHandPinky3",        "Character1",68,0);
+    setCharacterObject("LeftHandPinky4",        "Character1",69,0);
+    setCharacterObject("LeftHandExtraFinger1",  "Character1",70,0);
+    setCharacterObject("LeftHandExtraFinger2",  "Character1",71,0);
+    setCharacterObject("LeftHandExtraFinger3",  "Character1",72,0);
+    setCharacterObject("LeftHandExtraFinger4",  "Character1",73,0);
+    setCharacterObject("RightHandThumb1",       "Character1",74,0);
+    setCharacterObject("RightHandThumb2",       "Character1",75,0);
+    setCharacterObject("RightHandThumb3",       "Character1",76,0);
+    setCharacterObject("RightHandThumb4",       "Character1",77,0);
+    setCharacterObject("RightHandIndex1",       "Character1",78,0);
+    setCharacterObject("RightHandIndex2",       "Character1",79,0);
+    setCharacterObject("RightHandIndex3",       "Character1",80,0);
+    setCharacterObject("RightHandIndex4",       "Character1",81,0);
+    setCharacterObject("RightHandMiddle1",      "Character1",82,0);
+    setCharacterObject("RightHandMiddle2",      "Character1",83,0);
+    setCharacterObject("RightHandMiddle3",      "Character1",84,0);
+    setCharacterObject("RightHandMiddle4",      "Character1",85,0);
+    setCharacterObject("RightHandRing1",        "Character1",86,0);
+    setCharacterObject("RightHandRing2",        "Character1",87,0);
+    setCharacterObject("RightHandRing3",        "Character1",88,0);
+    setCharacterObject("RightHandRing4",        "Character1",89,0);
+    setCharacterObject("RightHandPinky1",       "Character1",90,0);
+    setCharacterObject("RightHandPinky2",       "Character1",91,0);
+    setCharacterObject("RightHandPinky3",       "Character1",92,0);
+    setCharacterObject("RightHandPinky4",       "Character1",93,0);
+    setCharacterObject("RightHandExtraFinger1", "Character1",94,0);
+    setCharacterObject("RightHandExtraFinger2", "Character1",95,0);
+    setCharacterObject("RightHandExtraFinger3", "Character1",96,0);
+    setCharacterObject("RightHandExtraFinger4", "Character1",97,0);
+    setCharacterObject("LeftFootThumb1",        "Character1",98,0);
+    setCharacterObject("LeftFootThumb2",        "Character1",99,0);
+    setCharacterObject("LeftFootThumb3",        "Character1",100,0);
+    setCharacterObject("LeftFootThumb4",        "Character1",101,0);
+    setCharacterObject("LeftFootIndex1",        "Character1",102,0);
+    setCharacterObject("LeftFootIndex2",        "Character1",103,0);
+    setCharacterObject("LeftFootIndex3",        "Character1",104,0);
+    setCharacterObject("LeftFootIndex4",        "Character1",105,0);
+    setCharacterObject("LeftFootMiddle1",       "Character1",106,0);
+    setCharacterObject("LeftFootMiddle2",       "Character1",107,0);
+    setCharacterObject("LeftFootMiddle3",       "Character1",108,0);
+    setCharacterObject("LeftFootMiddle4",       "Character1",109,0);
+    setCharacterObject("LeftFootRing1",         "Character1",110,0);
+    setCharacterObject("LeftFootRing2",         "Character1",111,0);
+    setCharacterObject("LeftFootRing3",         "Character1",112,0);
+    setCharacterObject("LeftFootRing4",         "Character1",113,0);
+    setCharacterObject("LeftFootPinky1",        "Character1",114,0);
+    setCharacterObject("LeftFootPinky2",        "Character1",115,0);
+    setCharacterObject("LeftFootPinky3",        "Character1",116,0);
+    setCharacterObject("LeftFootPinky4",        "Character1",117,0);
+    setCharacterObject("LeftFootExtraFinger1",  "Character1",118,0);
+    setCharacterObject("LeftFootExtraFinger2",  "Character1",119,0);
+    setCharacterObject("LeftFootExtraFinger3",  "Character1",120,0);
+    setCharacterObject("LeftFootExtraFinger4",  "Character1",121,0);
+    setCharacterObject("RightFootThumb1",       "Character1",122,0);
+    setCharacterObject("RightFootThumb2",       "Character1",123,0);
+    setCharacterObject("RightFootThumb3",       "Character1",124,0);
+    setCharacterObject("RightFootThumb4",       "Character1",125,0);
+    setCharacterObject("RightFootIndex1",       "Character1",126,0);
+    setCharacterObject("RightFootIndex2",       "Character1",127,0);
+    setCharacterObject("RightFootIndex3",       "Character1",128,0);
+    setCharacterObject("RightFootIndex4",       "Character1",129,0);
+    setCharacterObject("RightFootMiddle1",      "Character1",130,0);
+    setCharacterObject("RightFootMiddle2",      "Character1",131,0);
+    setCharacterObject("RightFootMiddle3",      "Character1",132,0);
+    setCharacterObject("RightFootMiddle4",      "Character1",133,0);
+    setCharacterObject("RightFootRing1",        "Character1",134,0);
+    setCharacterObject("RightFootRing2",        "Character1",135,0);
+    setCharacterObject("RightFootRing3",        "Character1",136,0);
+    setCharacterObject("RightFootRing4",        "Character1",137,0);
+    setCharacterObject("RightFootPinky1",       "Character1",138,0);
+    setCharacterObject("RightFootPinky2",       "Character1",139,0);
+    setCharacterObject("RightFootPinky3",       "Character1",140,0);
+    setCharacterObject("RightFootPinky4",       "Character1",141,0);
+    setCharacterObject("RightFootExtraFinger1", "Character1",142,0);
+    setCharacterObject("RightFootExtraFinger2", "Character1",143,0);
+    setCharacterObject("RightFootExtraFinger3", "Character1",144,0);
+    setCharacterObject("RightFootExtraFinger4", "Character1",145,0);
+    setCharacterObject("LeftInHandThumb",       "Character1",146,0);
+    setCharacterObject("LeftInHandIndex",       "Character1",147,0);
+    setCharacterObject("LeftInHandMiddle",      "Character1",148,0);
+    setCharacterObject("LeftInHandRing",        "Character1",149,0);
+    setCharacterObject("LeftInHandPinky",       "Character1",150,0);
+    setCharacterObject("LeftInHandExtraFinger", "Character1",151,0);
+    setCharacterObject("RightInHandThumb",      "Character1",152,0);
+    setCharacterObject("RightInHandIndex",      "Character1",153,0);
+    setCharacterObject("RightInHandMiddle",     "Character1",154,0);
+    setCharacterObject("RightInHandRing",       "Character1",155,0);
+    setCharacterObject("RightInHandPinky",      "Character1",156,0);
+    setCharacterObject("RightInHandExtraFinger","Character1",157,0);
+    setCharacterObject("LeftInFootThumb",       "Character1",158,0);
+    setCharacterObject("LeftInFootIndex",       "Character1",159,0);
+    setCharacterObject("LeftInFootMiddle",      "Character1",160,0);
+    setCharacterObject("LeftInFootRing",        "Character1",161,0);
+    setCharacterObject("LeftInFootPinky",       "Character1",162,0);
+    setCharacterObject("LeftInFootExtraFinger", "Character1",163,0);
+    setCharacterObject("RightInFootThumb",      "Character1",164,0);
+    setCharacterObject("RightInFootIndex",      "Character1",165,0);
+    setCharacterObject("RightInFootMiddle",     "Character1",166,0);
+    setCharacterObject("RightInFootRing",       "Character1",167,0);
+    setCharacterObject("RightInFootPinky",      "Character1",168,0);
+    setCharacterObject("RightInFootExtraFinger","Character1",169,0);
+    setCharacterObject("LeftShoulderExtra",     "Character1",170,0);
+    setCharacterObject("RightShoulderExtra",    "Character1",171,0);
+
+//-------------------------------------------------------------
+// 캐릭터 매핑 : 일반적인 이름 Hik 2013버전 2
+//-------------------------------------------------------------
+    // Joint Template
+    string $jnt[] = {
+        "", //   0 Reference
+        "", //   1 Hips
+        "", //   2 LeftUpLeg
+        "", //   3 LeftLeg
+        "", //   4 LeftFoot
+        "", //   5 RightUpLeg
+        "", //   6 RightLeg
+        "", //   7 RightFoot
+        "", //   8 Spine
+        "", //   9 LeftArm
+        "", //  10 LeftForeArm
+        "", //  11 LeftHand
+        "", //  12 RightArm
+        "", //  13 RightForeArm
+        "", //  14 RightHand
+        "", //  15 Head
+        "", //  16 LeftToeBase
+        "", //  17 RightToeBase
+        "", //  18 LeftShoulder
+        "", //  19 RightShoulder
+        "", //  20 Neck
+        "", //  21 LeftFingerBase
+        "", //  22 RightFingerBase
+        "", //  23 Spine1
+        "", //  24 Spine2
+        "", //  25 Spine3
+        "", //  26 Spine4
+        "", //  27 Spine5
+        "", //  28 Spine6
+        "", //  29 Spine7
+        "", //  30 Spine8
+        "", //  31 Spine9
+        "", //  32 Neck1
+        "", //  33 Neck2
+        "", //  34 Neck3
+        "", //  35 Neck4
+        "", //  36 Neck5
+        "", //  37 Neck6
+        "", //  38 Neck7
+        "", //  39 Neck8
+        "", //  40 Neck9
+        "", //  41 LeftUpLegRoll
+        "", //  42 LeftLegRoll
+        "", //  43 RightUpLegRoll
+        "", //  44 RightLegRoll
+        "", //  45 LeftArmRoll
+        "", //  46 LeftForeArmRoll
+        "", //  47 RightArmRoll
+        "", //  48 RightForeArmRoll
+        "", //  49 HipsTranslation
+        "", //  50 LeftHandThumb1
+        "", //  51 LeftHandThumb2
+        "", //  52 LeftHandThumb3
+        "", //  53 LeftHandThumb4
+        "", //  54 LeftHandIndex1
+        "", //  55 LeftHandIndex2
+        "", //  56 LeftHandIndex3
+        "", //  57 LeftHandIndex4
+        "", //  58 LeftHandMiddle1
+        "", //  59 LeftHandMiddle2
+        "", //  60 LeftHandMiddle3
+        "", //  61 LeftHandMiddle4
+        "", //  62 LeftHandRing1
+        "", //  63 LeftHandRing2
+        "", //  64 LeftHandRing3
+        "", //  65 LeftHandRing4
+        "", //  66 LeftHandPinky1
+        "", //  67 LeftHandPinky2
+        "", //  68 LeftHandPinky3
+        "", //  69 LeftHandPinky4
+        "", //  70 LeftHandExtraFinger1
+        "", //  71 LeftHandExtraFinger2
+        "", //  72 LeftHandExtraFinger3
+        "", //  73 LeftHandExtraFinger4
+        "", //  74 RightHandThumb1
+        "", //  75 RightHandThumb2
+        "", //  76 RightHandThumb3
+        "", //  77 RightHandThumb4
+        "", //  78 RightHandIndex1
+        "", //  79 RightHandIndex2
+        "", //  80 RightHandIndex3
+        "", //  81 RightHandIndex4
+        "", //  82 RightHandMiddle1
+        "", //  83 RightHandMiddle2
+        "", //  84 RightHandMiddle3
+        "", //  85 RightHandMiddle4
+        "", //  86 RightHandRing1
+        "", //  87 RightHandRing2
+        "", //  88 RightHandRing3
+        "", //  89 RightHandRing4
+        "", //  90 RightHandPinky1
+        "", //  91 RightHandPinky2
+        "", //  92 RightHandPinky3
+        "", //  93 RightHandPinky4
+        "", //  94 RightHandExtraFinger1
+        "", //  95 RightHandExtraFinger2
+        "", //  96 RightHandExtraFinger3
+        "", //  97 RightHandExtraFinger4
+        "", //  98 LeftFootThumb1 (monkeyType)
+        "", //  99 LeftFootThumb2 (monkeyType)
+        "", // 100 LeftFootThumb3 (monkeyType)
+        "", // 101 LeftFootThumb4 (monkeyType)
+        "", // 102 LeftFootIndex1
+        "", // 103 LeftFootIndex2
+        "", // 104 LeftFootIndex3
+        "", // 105 LeftFootIndex4
+        "", // 106 LeftFootMiddle1
+        "", // 107 LeftFootMiddle2
+        "", // 108 LeftFootMiddle3
+        "", // 109 LeftFootMiddle4
+        "", // 110 LeftFootRing1
+        "", // 111 LeftFootRing2
+        "", // 112 LeftFootRing3
+        "", // 113 LeftFootRing4
+        "", // 114 LeftFootPinky1
+        "", // 115 LeftFootPinky2
+        "", // 116 LeftFootPinky3
+        "", // 117 LeftFootPinky4
+        "", // 118 LeftFootExtraFinger1 (BigToe)
+        "", // 119 LeftFootExtraFinger2 (BigToe)
+        "", // 120 LeftFootExtraFinger3 (BigToe)
+        "", // 121 LeftFootExtraFinger4 (BigToe)
+        "", // 122 RightFootThumb1 (monkeyType)
+        "", // 123 RightFootThumb2 (monkeyType)
+        "", // 124 RightFootThumb3 (monkeyType)
+        "", // 125 RightFootThumb4 (monkeyType)
+        "", // 126 RightFootIndex1
+        "", // 127 RightFootIndex2
+        "", // 128 RightFootIndex3
+        "", // 129 RightFootIndex4
+        "", // 130 RightFootMiddle1
+        "", // 131 RightFootMiddle2
+        "", // 132 RightFootMiddle3
+        "", // 133 RightFootMiddle4
+        "", // 134 RightFootRing1
+        "", // 135 RightFootRing2
+        "", // 136 RightFootRing3
+        "", // 137 RightFootRing4
+        "", // 138 RightFootPinky1
+        "", // 139 RightFootPinky2
+        "", // 140 RightFootPinky3
+        "", // 141 RightFootPinky4
+        "", // 142 RightFootExtraFinger1 (BigToe)
+        "", // 143 RightFootExtraFinger2 (BigToe)
+        "", // 144 RightFootExtraFinger3 (BigToe)
+        "", // 145 RightFootExtraFinger4 (BigToe)
+        "", // 146 LeftInHandThumb
+        "", // 147 LeftInHandIndex
+        "", // 148 LeftInHandMiddle
+        "", // 149 LeftInHandRing
+        "", // 150 LeftInHandPinky
+        "", // 151 LeftInHandExtraFinger
+        "", // 152 RightInHandThumb
+        "", // 153 RightInHandIndex
+        "", // 154 RightInHandMiddle
+        "", // 155 RightInHandRing
+        "", // 156 RightInHandPinky
+        "", // 157 RightInHandExtraFinger
+        "", // 158 LeftInFootThumb
+        "", // 159 LeftInFootIndex
+        "", // 160 LeftInFootMiddle
+        "", // 161 LeftInFootRing
+        "", // 162 LeftInFootPinky
+        "", // 163 LeftInFootExtraFinger
+        "", // 164 RightInFootThumb
+        "", // 165 RightInFootIndex
+        "", // 166 RightInFootMiddle
+        "", // 167 RightInFootRing
+        "", // 168 RightInFootPinky
+        "", // 169 RightInFootExtraFinger
+        "", // 170 LeftShoulderExtra
+        ""  // 171 RightShoulderExtra
+        };
+
+    string $jnt[] = {
+        "Reference",             //   0 Reference
+        "Hips",                  //   1 Hips
+        "LeftUpLeg",             //   2 LeftUpLeg
+        "LeftLeg",               //   3 LeftLeg
+        "LeftFoot",              //   4 LeftFoot
+        "RightUpLeg",            //   5 RightUpLeg
+        "RightLeg",              //   6 RightLeg
+        "RightFoot",             //   7 RightFoot
+        "Spine",                 //   8 Spine
+        "LeftArm",               //   9 LeftArm
+        "LeftForeArm",           //  10 LeftForeArm
+        "LeftHand",              //  11 LeftHand
+        "RightArm",              //  12 RightArm
+        "RightForeArm",          //  13 RightForeArm
+        "RightHand",             //  14 RightHand
+        "Head",                  //  15 Head
+        "LeftToeBase",           //  16 LeftToeBase
+        "RightToeBase",          //  17 RightToeBase
+        "LeftShoulder",          //  18 LeftShoulder
+        "RightShoulder",         //  19 RightShoulder
+        "Neck",                  //  20 Neck
+        "LeftFingerBase",        //  21 LeftFingerBase
+        "RightFingerBase",       //  22 RightFingerBase
+        "Spine1",                //  23 Spine1
+        "Spine2",                //  24 Spine2
+        "Spine3",                //  25 Spine3
+        "Spine4",                //  26 Spine4
+        "Spine5",                //  27 Spine5
+        "Spine6",                //  28 Spine6
+        "Spine7",                //  29 Spine7
+        "Spine8",                //  30 Spine8
+        "Spine9",                //  31 Spine9
+        "Neck1",                 //  32 Neck1
+        "Neck2",                 //  33 Neck2
+        "Neck3",                 //  34 Neck3
+        "Neck4",                 //  35 Neck4
+        "Neck5",                 //  36 Neck5
+        "Neck6",                 //  37 Neck6
+        "Neck7",                 //  38 Neck7
+        "Neck8",                 //  39 Neck8
+        "Neck9",                 //  40 Neck9
+        "LeftUpLegRoll",         //  41 LeftUpLegRoll
+        "LeftLegRoll",           //  42 LeftLegRoll
+        "RightUpLegRoll",        //  43 RightUpLegRoll
+        "RightLegRoll",          //  44 RightLegRoll
+        "LeftArmRoll",           //  45 LeftArmRoll
+        "LeftForeArmRoll",       //  46 LeftForeArmRoll
+        "RightArmRoll",          //  47 RightArmRoll
+        "RightForeArmRoll",      //  48 RightForeArmRoll
+        "HipsTranslation",       //  49 HipsTranslation
+        "LeftHandThumb1",        //  50 LeftHandThumb1
+        "LeftHandThumb2",        //  51 LeftHandThumb2
+        "LeftHandThumb3",        //  52 LeftHandThumb3
+        "LeftHandThumb4",        //  53 LeftHandThumb4
+        "LeftHandIndex1",        //  54 LeftHandIndex1
+        "LeftHandIndex2",        //  55 LeftHandIndex2
+        "LeftHandIndex3",        //  56 LeftHandIndex3
+        "LeftHandIndex4",        //  57 LeftHandIndex4
+        "LeftHandMiddle1",       //  58 LeftHandMiddle1
+        "LeftHandMiddle2",       //  59 LeftHandMiddle2
+        "LeftHandMiddle3",       //  60 LeftHandMiddle3
+        "LeftHandMiddle4",       //  61 LeftHandMiddle4
+        "LeftHandRing1",         //  62 LeftHandRing1
+        "LeftHandRing2",         //  63 LeftHandRing2
+        "LeftHandRing3",         //  64 LeftHandRing3
+        "LeftHandRing4",         //  65 LeftHandRing4
+        "LeftHandPinky1",        //  66 LeftHandPinky1
+        "LeftHandPinky2",        //  67 LeftHandPinky2
+        "LeftHandPinky3",        //  68 LeftHandPinky3
+        "LeftHandPinky4",        //  69 LeftHandPinky4
+        "LeftHandExtraFinger1",  //  70 LeftHandExtraFinger1
+        "LeftHandExtraFinger2",  //  71 LeftHandExtraFinger2
+        "LeftHandExtraFinger3",  //  72 LeftHandExtraFinger3
+        "LeftHandExtraFinger4",  //  73 LeftHandExtraFinger4
+        "RightHandThumb1",       //  74 RightHandThumb1
+        "RightHandThumb2",       //  75 RightHandThumb2
+        "RightHandThumb3",       //  76 RightHandThumb3
+        "RightHandThumb4",       //  77 RightHandThumb4
+        "RightHandIndex1",       //  78 RightHandIndex1
+        "RightHandIndex2",       //  79 RightHandIndex2
+        "RightHandIndex3",       //  80 RightHandIndex3
+        "RightHandIndex4",       //  81 RightHandIndex4
+        "RightHandMiddle1",      //  82 RightHandMiddle1
+        "RightHandMiddle2",      //  83 RightHandMiddle2
+        "RightHandMiddle3",      //  84 RightHandMiddle3
+        "RightHandMiddle4",      //  85 RightHandMiddle4
+        "RightHandRing1",        //  86 RightHandRing1
+        "RightHandRing2",        //  87 RightHandRing2
+        "RightHandRing3",        //  88 RightHandRing3
+        "RightHandRing4",        //  89 RightHandRing4
+        "RightHandPinky1",       //  90 RightHandPinky1
+        "RightHandPinky2",       //  91 RightHandPinky2
+        "RightHandPinky3",       //  92 RightHandPinky3
+        "RightHandPinky4",       //  93 RightHandPinky4
+        "RightHandExtraFinger1", //  94 RightHandExtraFinger1
+        "RightHandExtraFinger2", //  95 RightHandExtraFinger2
+        "RightHandExtraFinger3", //  96 RightHandExtraFinger3
+        "RightHandExtraFinger4", //  97 RightHandExtraFinger4
+        "LeftFootThumb1",        //  98 LeftFootThumb1
+        "LeftFootThumb2",        //  99 LeftFootThumb2
+        "LeftFootThumb3",        // 100 LeftFootThumb3
+        "LeftFootThumb4",        // 101 LeftFootThumb4
+        "LeftFootIndex1",        // 102 LeftFootIndex1
+        "LeftFootIndex2",        // 103 LeftFootIndex2
+        "LeftFootIndex3",        // 104 LeftFootIndex3
+        "LeftFootIndex4",        // 105 LeftFootIndex4
+        "LeftFootMiddle1",       // 106 LeftFootMiddle1
+        "LeftFootMiddle2",       // 107 LeftFootMiddle2
+        "LeftFootMiddle3",       // 108 LeftFootMiddle3
+        "LeftFootMiddle4",       // 109 LeftFootMiddle4
+        "LeftFootRing1",         // 110 LeftFootRing1
+        "LeftFootRing2",         // 111 LeftFootRing2
+        "LeftFootRing3",         // 112 LeftFootRing3
+        "LeftFootRing4",         // 113 LeftFootRing4
+        "LeftFootPinky1",        // 114 LeftFootPinky1
+        "LeftFootPinky2",        // 115 LeftFootPinky2
+        "LeftFootPinky3",        // 116 LeftFootPinky3
+        "LeftFootPinky4",        // 117 LeftFootPinky4
+        "LeftFootExtraFinger1",  // 118 LeftFootExtraFinger1
+        "LeftFootExtraFinger2",  // 119 LeftFootExtraFinger2
+        "LeftFootExtraFinger3",  // 120 LeftFootExtraFinger3
+        "LeftFootExtraFinger4",  // 121 LeftFootExtraFinger4
+        "RightFootThumb1",       // 122 RightFootThumb1
+        "RightFootThumb2",       // 123 RightFootThumb2
+        "RightFootThumb3",       // 124 RightFootThumb3
+        "RightFootThumb4",       // 125 RightFootThumb4
+        "RightFootIndex1",       // 126 RightFootIndex1
+        "RightFootIndex2",       // 127 RightFootIndex2
+        "RightFootIndex3",       // 128 RightFootIndex3
+        "RightFootIndex4",       // 129 RightFootIndex4
+        "RightFootMiddle1",      // 130 RightFootMiddle1
+        "RightFootMiddle2",      // 131 RightFootMiddle2
+        "RightFootMiddle3",      // 132 RightFootMiddle3
+        "RightFootMiddle4",      // 133 RightFootMiddle4
+        "RightFootRing1",        // 134 RightFootRing1
+        "RightFootRing2",        // 135 RightFootRing2
+        "RightFootRing3",        // 136 RightFootRing3
+        "RightFootRing4",        // 137 RightFootRing4
+        "RightFootPinky1",       // 138 RightFootPinky1
+        "RightFootPinky2",       // 139 RightFootPinky2
+        "RightFootPinky3",       // 140 RightFootPinky3
+        "RightFootPinky4",       // 141 RightFootPinky4
+        "RightFootExtraFinger1", // 142 RightFootExtraFinger1
+        "RightFootExtraFinger2", // 143 RightFootExtraFinger2
+        "RightFootExtraFinger3", // 144 RightFootExtraFinger3
+        "RightFootExtraFinger4", // 145 RightFootExtraFinger4
+        "LeftInHandThumb",       // 146 LeftInHandThumb
+        "LeftInHandIndex",       // 147 LeftInHandIndex
+        "LeftInHandMiddle",      // 148 LeftInHandMiddle
+        "LeftInHandRing",        // 149 LeftInHandRing
+        "LeftInHandPinky",       // 150 LeftInHandPinky
+        "LeftInHandExtraFinger", // 151 LeftInHandExtraFinger
+        "RightInHandThumb",      // 152 RightInHandThumb
+        "RightInHandIndex",      // 153 RightInHandIndex
+        "RightInHandMiddle",     // 154 RightInHandMiddle
+        "RightInHandRing",       // 155 RightInHandRing
+        "RightInHandPinky",      // 156 RightInHandPinky
+        "RightInHandExtraFinger",// 157 RightInHandExtraFinger
+        "LeftInFootThumb",       // 158 LeftInFootThumb
+        "LeftInFootIndex",       // 159 LeftInFootIndex
+        "LeftInFootMiddle",      // 160 LeftInFootMiddle
+        "LeftInFootRing",        // 161 LeftInFootRing
+        "LeftInFootPinky",       // 162 LeftInFootPinky
+        "LeftInFootExtraFinger", // 163 LeftInFootExtraFinger
+        "RightInFootThumb",      // 164 RightInFootThumb
+        "RightInFootIndex",      // 165 RightInFootIndex
+        "RightInFootMiddle",     // 166 RightInFootMiddle
+        "RightInFootRing",       // 167 RightInFootRing
+        "RightInFootPinky",      // 168 RightInFootPinky
+        "RightInFootExtraFinger",// 169 RightInFootExtraFinger
+        "LeftShoulderExtra",     // 170 LeftShoulderExtra
+        "RightShoulderExtra"     // 171 RightShoulderExtra
+        };
+
+    string $HikJnt[] = {
+        "Reference",             // 0  ----
+        "Hips",                  // 1
+        "LeftUpLeg",             // 2
+        "LeftLeg",               // 3
+        "LeftFoot",              // 4
+        "RightUpLeg",            // 5  ----
+        "RightLeg",              // 6
+        "RightFoot",             // 7
+        "Spine",                 // 8
+        "LeftArm",               // 9
+        "LeftForeArm",           // 10 ----
+        "LeftHand",              // 11
+        "RightArm",              // 12
+        "RightForeArm",          // 13
+        "RightHand",             // 14
+        "Head",                  // 15 ----
+        "LeftToeBase",           // 16
+        "RightToeBase",          // 17
+        "LeftShoulder",          // 18
+        "RightShoulder",         // 19
+        "Neck",                  // 20 ----
+        "LeftFingerBase",        // 21
+        "RightFingerBase",       // 22
+        "Spine1",                // 23
+        "Spine2",                // 24
+        "Spine3",                // 25 ----
+        "Spine4",                // 26
+        "Spine5",                // 27
+        "Spine6",                // 28
+        "Spine7",                // 29
+        "Spine8",                // 30 ----
+        "Spine9",                // 31
+        "Neck1",                 // 32
+        "Neck2",                 // 33
+        "Neck3",                 // 34
+        "Neck4",                 // 35 ----
+        "Neck5",                 // 36
+        "Neck6",                 // 37
+        "Neck7",                 // 38
+        "Neck8",                 // 39
+        "Neck9",                 // 40 ----
+        "LeftUpLegRoll",         // 41
+        "LeftLegRoll",           // 42
+        "RightUpLegRoll",        // 43
+        "RightLegRoll",          // 44
+        "LeftArmRoll",           // 45 ----
+        "LeftForeArmRoll",       // 46
+        "RightArmRoll",          // 47
+        "RightForeArmRoll",      // 48
+        "HipsTranslation",       // 49
+        "LeftHandThumb1",        // 50 ----
+        "LeftHandThumb2",        // 51
+        "LeftHandThumb3",        // 52
+        "LeftHandThumb4",        // 53
+        "LeftHandIndex1",        // 54
+        "LeftHandIndex2",        // 55 ----
+        "LeftHandIndex3",        // 56
+        "LeftHandIndex4",        // 57
+        "LeftHandMiddle1",       // 58
+        "LeftHandMiddle2",       // 59
+        "LeftHandMiddle3",       // 60 ----
+        "LeftHandMiddle4",       // 61
+        "LeftHandRing1",         // 62
+        "LeftHandRing2",         // 63
+        "LeftHandRing3",         // 64
+        "LeftHandRing4",         // 65 ----
+        "LeftHandPinky1",        // 66
+        "LeftHandPinky2",        // 67
+        "LeftHandPinky3",        // 68
+        "LeftHandPinky4",        // 69
+        "LeftHandExtraFinger1",  // 70 ----
+        "LeftHandExtraFinger2",  // 71
+        "LeftHandExtraFinger3",  // 72
+        "LeftHandExtraFinger4",  // 73
+        "RightHandThumb1",       // 74
+        "RightHandThumb2",       // 75 ----
+        "RightHandThumb3",       // 76
+        "RightHandThumb4",       // 77
+        "RightHandIndex1",       // 78
+        "RightHandIndex2",       // 79
+        "RightHandIndex3",       // 80 ----
+        "RightHandIndex4",       // 81
+        "RightHandMiddle1",      // 82
+        "RightHandMiddle2",      // 83
+        "RightHandMiddle3",      // 84
+        "RightHandMiddle4",      // 85 ----
+        "RightHandRing1",        // 86
+        "RightHandRing2",        // 87
+        "RightHandRing3",        // 88
+        "RightHandRing4",        // 89
+        "RightHandPinky1",       // 90 ----
+        "RightHandPinky2",       // 91
+        "RightHandPinky3",       // 92
+        "RightHandPinky4",       // 93
+        "RightHandExtraFinger1", // 94
+        "RightHandExtraFinger2", // 95 ----
+        "RightHandExtraFinger3", // 96
+        "RightHandExtraFinger4", // 97
+        "LeftFootThumb1",        // 98
+        "LeftFootThumb2",        // 99
+        "LeftFootThumb3",        // 100 ----
+        "LeftFootThumb4",        // 101
+        "LeftFootIndex1",        // 102
+        "LeftFootIndex2",        // 103
+        "LeftFootIndex3",        // 104
+        "LeftFootIndex4",        // 105 ----
+        "LeftFootMiddle1",       // 106
+        "LeftFootMiddle2",       // 107
+        "LeftFootMiddle3",       // 108
+        "LeftFootMiddle4",       // 109
+        "LeftFootRing1",         // 110 ----
+        "LeftFootRing2",         // 111
+        "LeftFootRing3",         // 112
+        "LeftFootRing4",         // 113
+        "LeftFootPinky1",        // 114
+        "LeftFootPinky2",        // 115 ----
+        "LeftFootPinky3",        // 116
+        "LeftFootPinky4",        // 117
+        "LeftFootExtraFinger1",  // 118
+        "LeftFootExtraFinger2",  // 119
+        "LeftFootExtraFinger3",  // 120 ----
+        "LeftFootExtraFinger4",  // 121
+        "RightFootThumb1",       // 122
+        "RightFootThumb2",       // 123
+        "RightFootThumb3",       // 124
+        "RightFootThumb4",       // 125 ----
+        "RightFootIndex1",       // 126
+        "RightFootIndex2",       // 127
+        "RightFootIndex3",       // 128
+        "RightFootIndex4",       // 129
+        "RightFootMiddle1",      // 130 ----
+        "RightFootMiddle2",      // 131
+        "RightFootMiddle3",      // 132
+        "RightFootMiddle4",      // 133
+        "RightFootRing1",        // 134
+        "RightFootRing2",        // 135 ----
+        "RightFootRing3",        // 136
+        "RightFootRing4",        // 137
+        "RightFootPinky1",       // 138
+        "RightFootPinky2",       // 139
+        "RightFootPinky3",       // 140 ----
+        "RightFootPinky4",       // 141
+        "RightFootExtraFinger1", // 142
+        "RightFootExtraFinger2", // 143
+        "RightFootExtraFinger3", // 144
+        "RightFootExtraFinger4", // 145 ----
+        "LeftInHandThumb",       // 146
+        "LeftInHandIndex",       // 147
+        "LeftInHandMiddle",      // 148
+        "LeftInHandRing",        // 149
+        "LeftInHandPinky",       // 150 ----
+        "LeftInHandExtraFinger", // 151
+        "RightInHandThumb",      // 152
+        "RightInHandIndex",      // 153
+        "RightInHandMiddle",     // 154
+        "RightInHandRing",       // 155 ----
+        "RightInHandPinky",      // 156
+        "RightInHandExtraFinger",// 157
+        "LeftInFootThumb",       // 158
+        "LeftInFootIndex",       // 159
+        "LeftInFootMiddle",      // 160 ----
+        "LeftInFootRing",        // 161
+        "LeftInFootPinky",       // 162
+        "LeftInFootExtraFinger", // 163
+        "RightInFootThumb",      // 164
+        "RightInFootIndex",      // 165 ----
+        "RightInFootMiddle",     // 166
+        "RightInFootRing",       // 167
+        "RightInFootPinky",      // 168
+        "RightInFootExtraFinger",// 169
+        "LeftShoulderExtra",     // 170 ----
+        "RightShoulderExtra"     // 171
+        };
+
+//-------------------------------------------------------------
+// Daz4 to HIK
+//-------------------------------------------------------------
+// Daz3D 4 Gen4 조인트 이름 리스트
+global string $gDazJnt[];
+$gDazJnt= {
+    "Genesis", //   0 Reference
+    "hip", //   1 Hips
+    "lThigh", //   2 LeftUpLeg
+    "lShin", //   3 LeftLeg
+    "lFoot", //   4 LeftFoot
+    "rThigh", //   5 RightUpLeg
+    "rShin", //   6 RightLeg
+    "rFoot", //   7 RightFoot
+    "abdomen", //   8 Spine
+    "lShldr", //   9 LeftArm
+    "lForeArm", //  10 LeftForeArm
+    "lHand", //  11 LeftHand
+    "rShldr", //  12 RightArm
+    "rForeArm", //  13 RightForeArm
+    "rHand", //  14 RightHand
+    "head", //  15 Head
+    "lToe", //  16 LeftToeBase
+    "rToe", //  17 RightToeBase
+    "lCollar", //  18 LeftShoulder
+    "rCollar", //  19 RightShoulder
+    "neck", //  20 Neck
+    "", //  21 LeftFingerBase
+    "", //  22 RightFingerBase
+    "abdomen2", //  23 Spine1
+    "chest", //  24 Spine2
+    "", //  25 Spine3
+    "", //  26 Spine4
+    "", //  27 Spine5
+    "", //  28 Spine6
+    "", //  29 Spine7
+    "", //  30 Spine8
+    "", //  31 Spine9
+    "", //  32 Neck1
+    "", //  33 Neck2
+    "", //  34 Neck3
+    "", //  35 Neck4
+    "", //  36 Neck5
+    "", //  37 Neck6
+    "", //  38 Neck7
+    "", //  39 Neck8
+    "", //  40 Neck9
+    "", //  41 LeftUpLegRoll
+    "", //  42 LeftLegRoll
+    "", //  43 RightUpLegRoll
+    "", //  44 RightLegRoll
+    "", //  45 LeftArmRoll
+    "", //  46 LeftForeArmRoll
+    "", //  47 RightArmRoll
+    "", //  48 RightForeArmRoll
+    "", //  49 HipsTranslation
+    "lThumb1", //  50 LeftHandThumb1
+    "lThumb2", //  51 LeftHandThumb2
+    "lThumb3", //  52 LeftHandThumb3
+    "", //  53 LeftHandThumb4
+    "lIndex1", //  54 LeftHandIndex1
+    "lIndex2", //  55 LeftHandIndex2
+    "lIndex3", //  56 LeftHandIndex3
+    "", //  57 LeftHandIndex4
+    "lMid1", //  58 LeftHandMiddle1
+    "lMid2", //  59 LeftHandMiddle2
+    "lMid3", //  60 LeftHandMiddle3
+    "", //  61 LeftHandMiddle4
+    "lRing1", //  62 LeftHandRing1
+    "lRing2", //  63 LeftHandRing2
+    "lRing3", //  64 LeftHandRing3
+    "", //  65 LeftHandRing4
+    "lPinky1", //  66 LeftHandPinky1
+    "lPinky2", //  67 LeftHandPinky2
+    "lPinky3", //  68 LeftHandPinky3
+    "", //  69 LeftHandPinky4
+    "", //  70 LeftHandExtraFinger1
+    "", //  71 LeftHandExtraFinger2
+    "", //  72 LeftHandExtraFinger3
+    "", //  73 LeftHandExtraFinger4
+    "rThumb1", //  74 RightHandThumb1
+    "rThumb2", //  75 RightHandThumb2
+    "rThumb3", //  76 RightHandThumb3
+    "", //  77 RightHandThumb4
+    "rIndex1", //  78 RightHandIndex1
+    "rIndex2", //  79 RightHandIndex2
+    "rIndex3", //  80 RightHandIndex3
+    "", //  81 RightHandIndex4
+    "rMid1", //  82 RightHandMiddle1
+    "rMid2", //  83 RightHandMiddle2
+    "rMid3", //  84 RightHandMiddle3
+    "", //  85 RightHandMiddle4
+    "rRing1", //  86 RightHandRing1
+    "rRing2", //  87 RightHandRing2
+    "rRing3", //  88 RightHandRing3
+    "", //  89 RightHandRing4
+    "rPinky1", //  90 RightHandPinky1
+    "rPinky2", //  91 RightHandPinky2
+    "rPinky3", //  92 RightHandPinky3
+    "", //  93 RightHandPinky4
+    "", //  94 RightHandExtraFinger1
+    "", //  95 RightHandExtraFinger2
+    "", //  96 RightHandExtraFinger3
+    "", //  97 RightHandExtraFinger4
+    "", //  98 LeftFootThumb1 (monkeyType)
+    "", //  99 LeftFootThumb2 (monkeyType)
+    "", // 100 LeftFootThumb3 (monkeyType)
+    "", // 101 LeftFootThumb4 (monkeyType)
+    "", // 102 LeftFootIndex1
+    "", // 103 LeftFootIndex2
+    "", // 104 LeftFootIndex3
+    "", // 105 LeftFootIndex4
+    "", // 106 LeftFootMiddle1
+    "", // 107 LeftFootMiddle2
+    "", // 108 LeftFootMiddle3
+    "", // 109 LeftFootMiddle4
+    "", // 110 LeftFootRing1
+    "", // 111 LeftFootRing2
+    "", // 112 LeftFootRing3
+    "", // 113 LeftFootRing4
+    "", // 114 LeftFootPinky1
+    "", // 115 LeftFootPinky2
+    "", // 116 LeftFootPinky3
+    "", // 117 LeftFootPinky4
+    "lBigToe", // 118 LeftFootExtraFinger1 (BigToe)
+    "", // 119 LeftFootExtraFinger2 (BigToe)
+    "", // 120 LeftFootExtraFinger3 (BigToe)
+    "", // 121 LeftFootExtraFinger4 (BigToe)
+    "", // 122 RightFootThumb1 (monkeyType)
+    "", // 123 RightFootThumb2 (monkeyType)
+    "", // 124 RightFootThumb3 (monkeyType)
+    "", // 125 RightFootThumb4 (monkeyType)
+    "", // 126 RightFootIndex1
+    "", // 127 RightFootIndex2
+    "", // 128 RightFootIndex3
+    "", // 129 RightFootIndex4
+    "", // 130 RightFootMiddle1
+    "", // 131 RightFootMiddle2
+    "", // 132 RightFootMiddle3
+    "", // 133 RightFootMiddle4
+    "", // 134 RightFootRing1
+    "", // 135 RightFootRing2
+    "", // 136 RightFootRing3
+    "", // 137 RightFootRing4
+    "", // 138 RightFootPinky1
+    "", // 139 RightFootPinky2
+    "", // 140 RightFootPinky3
+    "", // 141 RightFootPinky4
+    "rBigToe", // 142 RightFootExtraFinger1 (BigToe)
+    "", // 143 RightFootExtraFinger2 (BigToe)
+    "", // 144 RightFootExtraFinger3 (BigToe)
+    "", // 145 RightFootExtraFinger4 (BigToe)
+    "", // 146 LeftInHandThumb
+    "lCarpal1", // 147 LeftInHandIndex
+    "", // 148 LeftInHandMiddle
+    "lCarpal2", // 149 LeftInHandRing
+    "", // 150 LeftInHandPinky
+    "", // 151 LeftInHandExtraFinger
+    "", // 152 RightInHandThumb
+    "rCarpal1", // 153 RightInHandIndex
+    "", // 154 RightInHandMiddle
+    "rCarpal2", // 155 RightInHandRing
+    "", // 156 RightInHandPinky
+    "", // 157 RightInHandExtraFinger
+    "", // 158 LeftInFootThumb
+    "", // 159 LeftInFootIndex
+    "", // 160 LeftInFootMiddle
+    "", // 161 LeftInFootRing
+    "", // 162 LeftInFootPinky
+    "", // 163 LeftInFootExtraFinger
+    "", // 164 RightInFootThumb
+    "", // 165 RightInFootIndex
+    "", // 166 RightInFootMiddle
+    "", // 167 RightInFootRing
+    "", // 168 RightInFootPinky
+    "", // 169 RightInFootExtraFinger
+    "", // 170 LeftShoulderExtra
+    ""  // 171 RightShoulderExtra
+};
+
+// Max Biped 조인트 이름 리스트
+global string $gBipedJnt[];
+$gBipedJnt = {
+    "", //   0 Reference
+    "CSO2_BipM", //   1 Hips
+    "LThigh", //   2 LeftUpLeg
+    "LCalf", //   3 LeftLeg
+    "LFoot", //   4 LeftFoot
+    "RThigh", //   5 RightUpLeg
+    "RCalf", //   6 RightLeg
+    "RFoot", //   7 RightFoot
+    "Spine", //   8 Spine
+    "LUpperArm", //   9 LeftArm
+    "LForearm", //  10 LeftForeArm
+    "LHand", //  11 LeftHand
+    "RUpperArm", //  12 RightArm
+    "RForearm", //  13 RightForeArm
+    "RHand", //  14 RightHand
+    "Head1", //  15 Head
+    "LToe0", //  16 LeftToeBase
+    "RToe0", //  17 RightToeBase
+    "LClavicle", //  18 LeftShoulder
+    "RClavicle", //  19 RightShoulder
+    "Neck1", //  20 Neck
+    "", //  21 LeftFingerBase
+    "", //  22 RightFingerBase
+    "Spine1", //  23 Spine1
+    "Spine2", //  24 Spine2
+    "Spine3", //  25 Spine3
+    "", //  26 Spine4
+    "", //  27 Spine5
+    "", //  28 Spine6
+    "", //  29 Spine7
+    "", //  30 Spine8
+    "", //  31 Spine9
+    "", //  32 Neck1
+    "", //  33 Neck2
+    "", //  34 Neck3
+    "", //  35 Neck4
+    "", //  36 Neck5
+    "", //  37 Neck6
+    "", //  38 Neck7
+    "", //  39 Neck8
+    "", //  40 Neck9
+    "", //  41 LeftUpLegRoll
+    "", //  42 LeftLegRoll
+    "", //  43 RightUpLegRoll
+    "", //  44 RightLegRoll
+    "LUpArmTwist1", //  45 LeftArmRoll
+    "LForeTwist2", //  46 LeftForeArmRoll
+    "RUpArmTwist1", //  47 RightArmRoll
+    "RForeTwist2", //  48 RightForeArmRoll
+    "", //  49 HipsTranslation
+    "LFinger0", //  50 LeftHandThumb1
+    "LFinger01", //  51 LeftHandThumb2
+    "LFinger02", //  52 LeftHandThumb3
+    "LFinger0Nub", //  53 LeftHandThumb4
+    "LFinger1", //  54 LeftHandIndex1
+    "LFinger11", //  55 LeftHandIndex2
+    "LFinger12", //  56 LeftHandIndex3
+    "LFinger1Nub", //  57 LeftHandIndex4
+    "LFinger2", //  58 LeftHandMiddle1
+    "LFinger21", //  59 LeftHandMiddle2
+    "LFinger22", //  60 LeftHandMiddle3
+    "LFinger2Nub", //  61 LeftHandMiddle4
+    "LFinger3", //  62 LeftHandRing1
+    "LFinger31", //  63 LeftHandRing2
+    "LFinger32", //  64 LeftHandRing3
+    "LFinger3Nub", //  65 LeftHandRing4
+    "LFinger4", //  66 LeftHandPinky1
+    "LFinger41", //  67 LeftHandPinky2
+    "LFinger42", //  68 LeftHandPinky3
+    "LFinger4Nub", //  69 LeftHandPinky4
+    "", //  70 LeftHandExtraFinger1
+    "", //  71 LeftHandExtraFinger2
+    "", //  72 LeftHandExtraFinger3
+    "", //  73 LeftHandExtraFinger4
+    "RFinger0", //  74 RightHandThumb1
+    "RFinger01", //  75 RightHandThumb2
+    "RFinger02", //  76 RightHandThumb3
+    "RFinger0Nub", //  77 RightHandThumb4
+    "RFinger1", //  78 RightHandIndex1
+    "RFinger11", //  79 RightHandIndex2
+    "RFinger12", //  80 RightHandIndex3
+    "RFinger1Nub", //  81 RightHandIndex4
+    "RFinger2", //  82 RightHandMiddle1
+    "RFinger21", //  83 RightHandMiddle2
+    "RFinger22", //  84 RightHandMiddle3
+    "RFinger2Nub", //  85 RightHandMiddle4
+    "RFinger3", //  86 RightHandRing1
+    "RFinger31", //  87 RightHandRing2
+    "RFinger32", //  88 RightHandRing3
+    "RFinger3Nub", //  89 RightHandRing4
+    "RFinger4", //  90 RightHandPinky1
+    "RFinger41", //  91 RightHandPinky2
+    "RFinger42", //  92 RightHandPinky3
+    "RFinger4Nub", //  93 RightHandPinky4
+    "", //  94 RightHandExtraFinger1
+    "", //  95 RightHandExtraFinger2
+    "", //  96 RightHandExtraFinger3
+    "", //  97 RightHandExtraFinger4
+    "", //  98 LeftFootThumb1 (monkeyType)
+    "", //  99 LeftFootThumb2 (monkeyType)
+    "", // 100 LeftFootThumb3 (monkeyType)
+    "", // 101 LeftFootThumb4 (monkeyType)
+    "", // 102 LeftFootIndex1
+    "", // 103 LeftFootIndex2
+    "", // 104 LeftFootIndex3
+    "", // 105 LeftFootIndex4
+    "", // 106 LeftFootMiddle1
+    "", // 107 LeftFootMiddle2
+    "", // 108 LeftFootMiddle3
+    "", // 109 LeftFootMiddle4
+    "", // 110 LeftFootRing1
+    "", // 111 LeftFootRing2
+    "", // 112 LeftFootRing3
+    "", // 113 LeftFootRing4
+    "", // 114 LeftFootPinky1
+    "", // 115 LeftFootPinky2
+    "", // 116 LeftFootPinky3
+    "", // 117 LeftFootPinky4
+    "", // 118 LeftFootExtraFinger1 (BigToe)
+    "", // 119 LeftFootExtraFinger2 (BigToe)
+    "", // 120 LeftFootExtraFinger3 (BigToe)
+    "", // 121 LeftFootExtraFinger4 (BigToe)
+    "", // 122 RightFootThumb1 (monkeyType)
+    "", // 123 RightFootThumb2 (monkeyType)
+    "", // 124 RightFootThumb3 (monkeyType)
+    "", // 125 RightFootThumb4 (monkeyType)
+    "", // 126 RightFootIndex1
+    "", // 127 RightFootIndex2
+    "", // 128 RightFootIndex3
+    "", // 129 RightFootIndex4
+    "", // 130 RightFootMiddle1
+    "", // 131 RightFootMiddle2
+    "", // 132 RightFootMiddle3
+    "", // 133 RightFootMiddle4
+    "", // 134 RightFootRing1
+    "", // 135 RightFootRing2
+    "", // 136 RightFootRing3
+    "", // 137 RightFootRing4
+    "", // 138 RightFootPinky1
+    "", // 139 RightFootPinky2
+    "", // 140 RightFootPinky3
+    "", // 141 RightFootPinky4
+    "", // 142 RightFootExtraFinger1 (BigToe)
+    "", // 143 RightFootExtraFinger2 (BigToe)
+    "", // 144 RightFootExtraFinger3 (BigToe)
+    "", // 145 RightFootExtraFinger4 (BigToe)
+    "", // 146 LeftInHandThumb
+    "", // 147 LeftInHandIndex
+    "", // 148 LeftInHandMiddle
+    "", // 149 LeftInHandRing
+    "", // 150 LeftInHandPinky
+    "", // 151 LeftInHandExtraFinger
+    "", // 152 RightInHandThumb
+    "", // 153 RightInHandIndex
+    "", // 154 RightInHandMiddle
+    "", // 155 RightInHandRing
+    "", // 156 RightInHandPinky
+    "", // 157 RightInHandExtraFinger
+    "", // 158 LeftInFootThumb
+    "", // 159 LeftInFootIndex
+    "", // 160 LeftInFootMiddle
+    "", // 161 LeftInFootRing
+    "", // 162 LeftInFootPinky
+    "", // 163 LeftInFootExtraFinger
+    "", // 164 RightInFootThumb
+    "", // 165 RightInFootIndex
+    "", // 166 RightInFootMiddle
+    "", // 167 RightInFootRing
+    "", // 168 RightInFootPinky
+    "", // 169 RightInFootExtraFinger
+    "", // 170 LeftShoulderExtra
+    ""  // 171 RightShoulderExtra
+};
+
+// 표준 HIK 조인트 이름 리스트
+global string $gHikJnt[];
+$gHikJnt = {
+    "Reference",             // 0  ----
+    "Hips",                  // 1
+    "LeftUpLeg",             // 2
+    "LeftLeg",               // 3
+    "LeftFoot",              // 4
+    "RightUpLeg",            // 5  ----
+    "RightLeg",              // 6
+    "RightFoot",             // 7
+    "Spine",                 // 8
+    "LeftArm",               // 9
+    "LeftForeArm",           // 10 ----
+    "LeftHand",              // 11
+    "RightArm",              // 12
+    "RightForeArm",          // 13
+    "RightHand",             // 14
+    "Head",                  // 15 ----
+    "LeftToeBase",           // 16
+    "RightToeBase",          // 17
+    "LeftShoulder",          // 18
+    "RightShoulder",         // 19
+    "Neck",                  // 20 ----
+    "LeftFingerBase",        // 21
+    "RightFingerBase",       // 22
+    "Spine1",                // 23
+    "Spine2",                // 24
+    "Spine3",                // 25 ----
+    "Spine4",                // 26
+    "Spine5",                // 27
+    "Spine6",                // 28
+    "Spine7",                // 29
+    "Spine8",                // 30 ----
+    "Spine9",                // 31
+    "Neck1",                 // 32
+    "Neck2",                 // 33
+    "Neck3",                 // 34
+    "Neck4",                 // 35 ----
+    "Neck5",                 // 36
+    "Neck6",                 // 37
+    "Neck7",                 // 38
+    "Neck8",                 // 39
+    "Neck9",                 // 40 ----
+    "LeftUpLegRoll",         // 41
+    "LeftLegRoll",           // 42
+    "RightUpLegRoll",        // 43
+    "RightLegRoll",          // 44
+    "LeftArmRoll",           // 45 ----
+    "LeftForeArmRoll",       // 46
+    "RightArmRoll",          // 47
+    "RightForeArmRoll",      // 48
+    "HipsTranslation",       // 49
+    "LeftHandThumb1",        // 50 ----
+    "LeftHandThumb2",        // 51
+    "LeftHandThumb3",        // 52
+    "LeftHandThumb4",        // 53
+    "LeftHandIndex1",        // 54
+    "LeftHandIndex2",        // 55 ----
+    "LeftHandIndex3",        // 56
+    "LeftHandIndex4",        // 57
+    "LeftHandMiddle1",       // 58
+    "LeftHandMiddle2",       // 59
+    "LeftHandMiddle3",       // 60 ----
+    "LeftHandMiddle4",       // 61
+    "LeftHandRing1",         // 62
+    "LeftHandRing2",         // 63
+    "LeftHandRing3",         // 64
+    "LeftHandRing4",         // 65 ----
+    "LeftHandPinky1",        // 66
+    "LeftHandPinky2",        // 67
+    "LeftHandPinky3",        // 68
+    "LeftHandPinky4",        // 69
+    "LeftHandExtraFinger1",  // 70 ----
+    "LeftHandExtraFinger2",  // 71
+    "LeftHandExtraFinger3",  // 72
+    "LeftHandExtraFinger4",  // 73
+    "RightHandThumb1",       // 74
+    "RightHandThumb2",       // 75 ----
+    "RightHandThumb3",       // 76
+    "RightHandThumb4",       // 77
+    "RightHandIndex1",       // 78
+    "RightHandIndex2",       // 79
+    "RightHandIndex3",       // 80 ----
+    "RightHandIndex4",       // 81
+    "RightHandMiddle1",      // 82
+    "RightHandMiddle2",      // 83
+    "RightHandMiddle3",      // 84
+    "RightHandMiddle4",      // 85 ----
+    "RightHandRing1",        // 86
+    "RightHandRing2",        // 87
+    "RightHandRing3",        // 88
+    "RightHandRing4",        // 89
+    "RightHandPinky1",       // 90 ----
+    "RightHandPinky2",       // 91
+    "RightHandPinky3",       // 92
+    "RightHandPinky4",       // 93
+    "RightHandExtraFinger1", // 94
+    "RightHandExtraFinger2", // 95 ----
+    "RightHandExtraFinger3", // 96
+    "RightHandExtraFinger4", // 97
+    "LeftFootThumb1",        // 98
+    "LeftFootThumb2",        // 99
+    "LeftFootThumb3",        // 100 ----
+    "LeftFootThumb4",        // 101
+    "LeftFootIndex1",        // 102
+    "LeftFootIndex2",        // 103
+    "LeftFootIndex3",        // 104
+    "LeftFootIndex4",        // 105 ----
+    "LeftFootMiddle1",       // 106
+    "LeftFootMiddle2",       // 107
+    "LeftFootMiddle3",       // 108
+    "LeftFootMiddle4",       // 109
+    "LeftFootRing1",         // 110 ----
+    "LeftFootRing2",         // 111
+    "LeftFootRing3",         // 112
+    "LeftFootRing4",         // 113
+    "LeftFootPinky1",        // 114
+    "LeftFootPinky2",        // 115 ----
+    "LeftFootPinky3",        // 116
+    "LeftFootPinky4",        // 117
+    "LeftFootExtraFinger1",  // 118
+    "LeftFootExtraFinger2",  // 119
+    "LeftFootExtraFinger3",  // 120 ----
+    "LeftFootExtraFinger4",  // 121
+    "RightFootThumb1",       // 122
+    "RightFootThumb2",       // 123
+    "RightFootThumb3",       // 124
+    "RightFootThumb4",       // 125 ----
+    "RightFootIndex1",       // 126
+    "RightFootIndex2",       // 127
+    "RightFootIndex3",       // 128
+    "RightFootIndex4",       // 129
+    "RightFootMiddle1",      // 130 ----
+    "RightFootMiddle2",      // 131
+    "RightFootMiddle3",      // 132
+    "RightFootMiddle4",      // 133
+    "RightFootRing1",        // 134
+    "RightFootRing2",        // 135 ----
+    "RightFootRing3",        // 136
+    "RightFootRing4",        // 137
+    "RightFootPinky1",       // 138
+    "RightFootPinky2",       // 139
+    "RightFootPinky3",       // 140 ----
+    "RightFootPinky4",       // 141
+    "RightFootExtraFinger1", // 142
+    "RightFootExtraFinger2", // 143
+    "RightFootExtraFinger3", // 144
+    "RightFootExtraFinger4", // 145 ----
+    "LeftInHandThumb",       // 146
+    "LeftInHandIndex",       // 147
+    "LeftInHandMiddle",      // 148
+    "LeftInHandRing",        // 149
+    "LeftInHandPinky",       // 150 ----
+    "LeftInHandExtraFinger", // 151
+    "RightInHandThumb",      // 152
+    "RightInHandIndex",      // 153
+    "RightInHandMiddle",     // 154
+    "RightInHandRing",       // 155 ----
+    "RightInHandPinky",      // 156
+    "RightInHandExtraFinger",// 157
+    "LeftInFootThumb",       // 158
+    "LeftInFootIndex",       // 159
+    "LeftInFootMiddle",      // 160 ----
+    "LeftInFootRing",        // 161
+    "LeftInFootPinky",       // 162
+    "LeftInFootExtraFinger", // 163
+    "RightInFootThumb",      // 164
+    "RightInFootIndex",      // 165 ----
+    "RightInFootMiddle",     // 166
+    "RightInFootRing",       // 167
+    "RightInFootPinky",      // 168
+    "RightInFootExtraFinger",// 169
+    "LeftShoulderExtra",     // 170 ----
+    "RightShoulderExtra"     // 171
+};
+
+// HIK 플러그인 로드
+global proc KH_HIK_PluginLoad() {
+    if (!`pluginInfo -query -loaded mayaHIK`) {
+        loadPlugin "mayaHIK.mll";
+        print "mayaHIK.mll 플러그인 로드\n";
+    }
+}
+
+// 헤어 뼈 컨스트레인트
+global proc constraintHairJnt() {
+    select -r Hair_Genesis Hair_hip Hair_abdomen Hair_abdomen2 Hair_chest Hair_neck Hair_head Hair_rCollar Hair_lCollar;
+    string $sel[] = `ls -sl`;
+    for ($obj in $sel) {
+        string $buffer[];
+        tokenize $obj "_" $buffer;
+        print $buffer[1];
+        parentConstraint $buffer[1] $obj;
+    }
+}
+
+// 조인트 HIK용 이름으로 이름 변경
+global proc renameForHik(string $prefix, string $jnt[]) {
+    global string $gHikJnt[];
+
+    for ($i=0;$i<size($gHikJnt);$i++) {
+        string $joint = $prefix+$jnt[$i];
+        if ($joint == $gHikJnt[$i]) continue;
+        if (`objExists $gHikJnt[$i]`) rename $gHikJnt[$i] ($gHikJnt[$i]+"#");
+        if (`objExists $joint`) rename $joint $gHikJnt[$i];
+    }
+}
+
+// Daz Tpose
+global proc makeTPose() {
+    //Arm
+        // Left Arm
+        string $locAim[] = `spaceLocator`;
+        string $locUp[] = `spaceLocator`;
+        string $tmp[] = `pointConstraint "LeftArm" $locAim[0]`; delete $tmp;
+        string $tmp[] = `pointConstraint "LeftArm" $locUp[0]`;  delete $tmp;
+        move -r -os -wd 100 0 0 $locAim[0];
+        move -r -os -wd 0 10 0 $locUp[0];
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftArm"` ;     delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftForeArm"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftHand"` ;    delete $tmp;
+        delete $locAim[0] $locUp[0];
+
+        // Right Arm
+        string $locAim[] = `spaceLocator`;
+        string $locUp[] = `spaceLocator`;
+        string $tmp[] = `pointConstraint "RightArm" $locAim[0]`; delete $tmp;
+        string $tmp[] = `pointConstraint "RightArm" $locUp[0]`;  delete $tmp;
+        move -r -os -wd -100 0 0 $locAim[0];
+        move -r -os -wd 0 10 0 $locUp[0];
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector -1 0 0 -upVector 0 1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightArm"` ;     delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector -1 0 0 -upVector 0 1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightForeArm"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector -1 0 0 -upVector 0 1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightHand"` ;    delete $tmp;
+        delete $locAim[0] $locUp[0];
+
+    // Leg
+        // Left Leg
+        string $locAim[] = `spaceLocator`;
+        string $locUp[] = `spaceLocator`;
+        string $tmp[] = `pointConstraint "LeftUpLeg" $locAim[0]`; delete $tmp;
+        string $tmp[] = `pointConstraint "LeftUpLeg" $locUp[0]`;  delete $tmp;
+        move -r -os -wd 0 -100 0 $locAim[0];
+        move -r -os -wd 0 0 10 $locUp[0];
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 0 -1 0 -upVector 0 0 1  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftUpLeg"` ;     delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 0 -1 0 -upVector 0 0 1  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftLeg"` ;     delete $tmp;
+        delete $locAim[0] $locUp[0];
+
+        // Right Leg
+        string $locAim[] = `spaceLocator`;
+        string $locUp[] = `spaceLocator`;
+        string $tmp[] = `pointConstraint "RightUpLeg" $locAim[0]`; delete $tmp;
+        string $tmp[] = `pointConstraint "RightUpLeg" $locUp[0]`;  delete $tmp;
+        move -r -os -wd 0 -100 0 $locAim[0];
+        move -r -os -wd 0 0 10 $locUp[0];
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 0 -1 0 -upVector 0 0 1  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightUpLeg"` ;     delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 0 -1 0 -upVector 0 0 1  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightLeg"` ;     delete $tmp;
+        delete $locAim[0] $locUp[0];
+
+    // Finger
+        // LeftHandThumb2
+        string $locAim[] = `spaceLocator`;
+        string $locUp[] = `spaceLocator`;
+        string $tmp[] = `pointConstraint "LeftHandThumb2" $locAim[0]`; delete $tmp;
+        string $tmp[] = `pointConstraint "LeftHandThumb2" $locUp[0]`;  delete $tmp;
+        move -r -os -wd 100 0 0 $locAim[0];
+        move -r -os -wd 0 10 0 $locUp[0];
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftHandThumb2"` ;     delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftHandThumb3"` ; delete $tmp;
+        delete $locAim[0] $locUp[0];
+
+        // RightHandThumb2
+        string $locAim[] = `spaceLocator`;
+        string $locUp[] = `spaceLocator`;
+        string $tmp[] = `pointConstraint "RightHandThumb2" $locAim[0]`; delete $tmp;
+        string $tmp[] = `pointConstraint "RightHandThumb2" $locUp[0]`;  delete $tmp;
+        move -r -os -wd 100 0 0 $locAim[0];
+        move -r -os -wd 0 10 0 $locUp[0];
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightHandThumb2"` ;     delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightHandThumb3"` ; delete $tmp;
+        delete $locAim[0] $locUp[0];
+
+
+        // LeftHandIndex1
+        string $locAim[] = `spaceLocator`;
+        string $locUp[] = `spaceLocator`;
+        string $tmp[] = `pointConstraint "LeftHandIndex1" $locAim[0]`; delete $tmp;
+        string $tmp[] = `pointConstraint "LeftHandIndex1" $locUp[0]`;  delete $tmp;
+        move -r -os -wd 100 0 0 $locAim[0];
+        move -r -os -wd 0 10 0 $locUp[0];
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftHandIndex1"` ;     delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftHandIndex2"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftHandIndex3"` ;    delete $tmp;
+        delete $locAim[0] $locUp[0];
+
+        // LeftHandMiddle1
+        string $locAim[] = `spaceLocator`;
+        string $locUp[] = `spaceLocator`;
+        string $tmp[] = `pointConstraint "LeftHandMiddle1" $locAim[0]`; delete $tmp;
+        string $tmp[] = `pointConstraint "LeftHandMiddle1" $locUp[0]`;  delete $tmp;
+        move -r -os -wd 100 0 0 $locAim[0];
+        move -r -os -wd 0 10 0 $locUp[0];
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftHandMiddle1"` ;     delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftHandMiddle2"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftHandMiddle3"` ;    delete $tmp;
+        delete $locAim[0] $locUp[0];
+
+        // LeftHandRing1
+        string $locAim[] = `spaceLocator`;
+        string $locUp[] = `spaceLocator`;
+        string $tmp[] = `pointConstraint "LeftHandRing1" $locAim[0]`; delete $tmp;
+        string $tmp[] = `pointConstraint "LeftHandRing1" $locUp[0]`;  delete $tmp;
+        move -r -os -wd 100 0 0 $locAim[0];
+        move -r -os -wd 0 10 0 $locUp[0];
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftHandRing1"` ;     delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftHandRing2"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftHandRing3"` ;    delete $tmp;
+        delete $locAim[0] $locUp[0];
+
+        // LLeftHandPinky1
+        string $locAim[] = `spaceLocator`;
+        string $locUp[] = `spaceLocator`;
+        string $tmp[] = `pointConstraint "LeftHandPinky1" $locAim[0]`; delete $tmp;
+        string $tmp[] = `pointConstraint "LeftHandPinky1" $locUp[0]`;  delete $tmp;
+        move -r -os -wd 100 0 0 $locAim[0];
+        move -r -os -wd 0 10 0 $locUp[0];
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftHandPinky1"` ;     delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftHandPinky2"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftHandPinky3"` ;    delete $tmp;
+        delete $locAim[0] $locUp[0];
+
+        // RightHandIndex1
+        string $locAim[] = `spaceLocator`;
+        string $locUp[] = `spaceLocator`;
+        string $tmp[] = `pointConstraint "RightHandIndex1" $locAim[0]`; delete $tmp;
+        string $tmp[] = `pointConstraint "RightHandIndex1" $locUp[0]`;  delete $tmp;
+        move -r -os -wd 100 0 0 $locAim[0];
+        move -r -os -wd 0 10 0 $locUp[0];
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightHandIndex1"` ;     delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightHandIndex2"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightHandIndex3"` ;    delete $tmp;
+        delete $locAim[0] $locUp[0];
+
+        // RightHandMiddle1
+        string $locAim[] = `spaceLocator`;
+        string $locUp[] = `spaceLocator`;
+        string $tmp[] = `pointConstraint "RightHandMiddle1" $locAim[0]`; delete $tmp;
+        string $tmp[] = `pointConstraint "RightHandMiddle1" $locUp[0]`;  delete $tmp;
+        move -r -os -wd 100 0 0 $locAim[0];
+        move -r -os -wd 0 10 0 $locUp[0];
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightHandMiddle1"` ;     delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightHandMiddle2"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightHandMiddle3"` ;    delete $tmp;
+        delete $locAim[0] $locUp[0];
+
+        // RightHandRing1
+        string $locAim[] = `spaceLocator`;
+        string $locUp[] = `spaceLocator`;
+        string $tmp[] = `pointConstraint "RightHandRing1" $locAim[0]`; delete $tmp;
+        string $tmp[] = `pointConstraint "RightHandRing1" $locUp[0]`;  delete $tmp;
+        move -r -os -wd 100 0 0 $locAim[0];
+        move -r -os -wd 0 10 0 $locUp[0];
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightHandRing1"` ;     delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightHandRing2"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightHandRing3"` ;    delete $tmp;
+        delete $locAim[0] $locUp[0];
+
+        // LRightHandPinky1
+        string $locAim[] = `spaceLocator`;
+        string $locUp[] = `spaceLocator`;
+        string $tmp[] = `pointConstraint "RightHandPinky1" $locAim[0]`; delete $tmp;
+        string $tmp[] = `pointConstraint "RightHandPinky1" $locUp[0]`;  delete $tmp;
+        move -r -os -wd 100 0 0 $locAim[0];
+        move -r -os -wd 0 10 0 $locUp[0];
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightHandPinky1"` ;     delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightHandPinky2"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightHandPinky3"` ;    delete $tmp;
+        delete $locAim[0] $locUp[0];
+}
+// Biped Tpose
+global proc makeTPose_Biped() {
+    //Arm
+        // Left Arm
+        string $locAim[] = `spaceLocator`;
+        string $locUp[] = `spaceLocator`;
+        string $tmp[] = `pointConstraint "LeftArm" $locAim[0]`; delete $tmp;
+        string $tmp[] = `pointConstraint "LeftArm" $locUp[0]`;  delete $tmp;
+        move -r -os -wd 100 0 0 $locAim[0];
+        move -r -os -wd 0 10 0 $locUp[0];
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 0 1  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftShoulder"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 0 1  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftArm"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 0 1  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftForeArm"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 -1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftHand"` ; delete $tmp;
+        delete $locAim[0] $locUp[0];
+
+        // Right Arm
+        string $locAim[] = `spaceLocator`;
+        string $locUp[] = `spaceLocator`;
+        string $tmp[] = `pointConstraint "RightArm" $locAim[0]`; delete $tmp;
+        string $tmp[] = `pointConstraint "RightArm" $locUp[0]`;  delete $tmp;
+        move -r -os -wd -100 0 0 $locAim[0];
+        move -r -os -wd 0 10 0 $locUp[0];
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 0 -1  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightShoulder"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 0 -1  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightArm"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 0 -1  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightForeArm"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 -1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightHand"` ; delete $tmp;
+        delete $locAim[0] $locUp[0];
+
+    // Leg
+        // Left Leg
+        string $locAim[] = `spaceLocator`;
+        string $locUp[] = `spaceLocator`;
+        string $tmp[] = `pointConstraint "LeftUpLeg" $locAim[0]`; delete $tmp;
+        string $tmp[] = `pointConstraint "LeftUpLeg" $locUp[0]`;  delete $tmp;
+        move -r -os -wd 0 -100 0 $locAim[0];
+        move -r -os -wd 0 0 10 $locUp[0];
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftUpLeg"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftLeg"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftFoot"` ; delete $tmp;
+        delete $locAim[0] $locUp[0];
+
+        // Right Leg
+        string $locAim[] = `spaceLocator`;
+        string $locUp[] = `spaceLocator`;
+        string $tmp[] = `pointConstraint "RightUpLeg" $locAim[0]`; delete $tmp;
+        string $tmp[] = `pointConstraint "RightUpLeg" $locUp[0]`;  delete $tmp;
+        move -r -os -wd 0 -100 0 $locAim[0];
+        move -r -os -wd 0 0 10 $locUp[0];
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightUpLeg"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightLeg"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightFoot"` ; delete $tmp;
+        delete $locAim[0] $locUp[0];
+
+    // Finger
+        // LeftHandThumb2
+        string $locAim[] = `spaceLocator`;
+        string $locUp[] = `spaceLocator`;
+        string $tmp[] = `pointConstraint "LeftHandThumb2" $locAim[0]`; delete $tmp;
+        string $tmp[] = `pointConstraint "LeftHandThumb2" $locUp[0]`;  delete $tmp;
+        move -r -os -wd 100 0 0 $locAim[0];
+        move -r -os -wd 0 10 0 $locUp[0];
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 0 1  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftHandThumb2"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 0 1  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftHandThumb3"` ; delete $tmp;
+        delete $locAim[0] $locUp[0];
+
+        // RightHandThumb2
+        string $locAim[] = `spaceLocator`;
+        string $locUp[] = `spaceLocator`;
+        string $tmp[] = `pointConstraint "RightHandThumb2" $locAim[0]`; delete $tmp;
+        string $tmp[] = `pointConstraint "RightHandThumb2" $locUp[0]`;  delete $tmp;
+        move -r -os -wd -100 0 0 $locAim[0];
+        move -r -os -wd 0 10 0 $locUp[0];
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 0 -1  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightHandThumb2"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 0 -1  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightHandThumb3"` ; delete $tmp;
+        delete $locAim[0] $locUp[0];
+
+        // LeftHandIndex1
+        string $locAim[] = `spaceLocator`;
+        string $locUp[] = `spaceLocator`;
+        string $tmp[] = `pointConstraint "LeftHandIndex1" $locAim[0]`; delete $tmp;
+        string $tmp[] = `pointConstraint "LeftHandIndex1" $locUp[0]`;  delete $tmp;
+        move -r -os -wd 100 0 0 $locAim[0];
+        move -r -os -wd 0 10 0 $locUp[0];
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 -1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftHandIndex1"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 -1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftHandIndex2"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 -1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftHandIndex3"` ; delete $tmp;
+        delete $locAim[0] $locUp[0];
+
+        // LeftHandMiddle1
+        string $locAim[] = `spaceLocator`;
+        string $locUp[] = `spaceLocator`;
+        string $tmp[] = `pointConstraint "LeftHandMiddle1" $locAim[0]`; delete $tmp;
+        string $tmp[] = `pointConstraint "LeftHandMiddle1" $locUp[0]`;  delete $tmp;
+        move -r -os -wd 100 0 0 $locAim[0];
+        move -r -os -wd 0 10 0 $locUp[0];
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 -1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftHandMiddle1"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 -1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftHandMiddle2"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 -1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftHandMiddle3"` ; delete $tmp;
+        delete $locAim[0] $locUp[0];
+
+        // LeftHandRing1
+        string $locAim[] = `spaceLocator`;
+        string $locUp[] = `spaceLocator`;
+        string $tmp[] = `pointConstraint "LeftHandRing1" $locAim[0]`; delete $tmp;
+        string $tmp[] = `pointConstraint "LeftHandRing1" $locUp[0]`;  delete $tmp;
+        move -r -os -wd 100 0 0 $locAim[0];
+        move -r -os -wd 0 10 0 $locUp[0];
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 -1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftHandRing1"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 -1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftHandRing2"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 -1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftHandRing3"` ; delete $tmp;
+        delete $locAim[0] $locUp[0];
+
+        // LLeftHandPinky1
+        string $locAim[] = `spaceLocator`;
+        string $locUp[] = `spaceLocator`;
+        string $tmp[] = `pointConstraint "LeftHandPinky1" $locAim[0]`; delete $tmp;
+        string $tmp[] = `pointConstraint "LeftHandPinky1" $locUp[0]`;  delete $tmp;
+        move -r -os -wd 100 0 0 $locAim[0];
+        move -r -os -wd 0 10 0 $locUp[0];
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 -1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftHandPinky1"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 -1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftHandPinky2"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 -1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftHandPinky3"` ; delete $tmp;
+        delete $locAim[0] $locUp[0];
+
+        // RightHandIndex1
+        string $locAim[] = `spaceLocator`;
+        string $locUp[] = `spaceLocator`;
+        string $tmp[] = `pointConstraint "RightHandIndex1" $locAim[0]`; delete $tmp;
+        string $tmp[] = `pointConstraint "RightHandIndex1" $locUp[0]`;  delete $tmp;
+        move -r -os -wd -100 0 0 $locAim[0];
+        move -r -os -wd 0 10 0 $locUp[0];
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 -1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightHandIndex1"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 -1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightHandIndex2"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 -1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightHandIndex3"` ; delete $tmp;
+        delete $locAim[0] $locUp[0];
+
+        // RightHandMiddle1
+        string $locAim[] = `spaceLocator`;
+        string $locUp[] = `spaceLocator`;
+        string $tmp[] = `pointConstraint "RightHandMiddle1" $locAim[0]`; delete $tmp;
+        string $tmp[] = `pointConstraint "RightHandMiddle1" $locUp[0]`;  delete $tmp;
+        move -r -os -wd -100 0 0 $locAim[0];
+        move -r -os -wd 0 10 0 $locUp[0];
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 -1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightHandMiddle1"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 -1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightHandMiddle2"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 -1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightHandMiddle3"` ; delete $tmp;
+        delete $locAim[0] $locUp[0];
+
+        // RightHandRing1
+        string $locAim[] = `spaceLocator`;
+        string $locUp[] = `spaceLocator`;
+        string $tmp[] = `pointConstraint "RightHandRing1" $locAim[0]`; delete $tmp;
+        string $tmp[] = `pointConstraint "RightHandRing1" $locUp[0]`;  delete $tmp;
+        move -r -os -wd -100 0 0 $locAim[0];
+        move -r -os -wd 0 10 0 $locUp[0];
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 -1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightHandRing1"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 -1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightHandRing2"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 -1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightHandRing3"` ; delete $tmp;
+        delete $locAim[0] $locUp[0];
+
+        // LRightHandPinky1
+        string $locAim[] = `spaceLocator`;
+        string $locUp[] = `spaceLocator`;
+        string $tmp[] = `pointConstraint "RightHandPinky1" $locAim[0]`; delete $tmp;
+        string $tmp[] = `pointConstraint "RightHandPinky1" $locUp[0]`;  delete $tmp;
+        move -r -os -wd -100 0 0 $locAim[0];
+        move -r -os -wd 0 10 0 $locUp[0];
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 -1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightHandPinky1"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 -1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightHandPinky2"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 -1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightHandPinky3"` ; delete $tmp;
+        delete $locAim[0] $locUp[0];
+}
+
+global proc makeTPose_Biped_v2() {
+    //Arm
+        // Left Arm
+        JointAimTo("LeftShoulder",  <<1,0,0>>,<<0,0,1>>);
+        JointAimTo("LeftArm",       <<1,0,0>>,<<0,0,1>>);
+        JointAimTo("LeftForeArm",   <<1,0,0>>,<<0,0,1>>);
+        JointAimTo("LeftHand",      <<1,0,0>>,<<0,-1,0>>);
+
+        // Right Arm
+        JointAimTo("RightShoulder", <<-1,0,0>>,<<0,0,-1>>);
+        JointAimTo("RightArm",      <<-1,0,0>>,<<0,0,-1>>);
+        JointAimTo("RightForeArm",  <<-1,0,0>>,<<0,0,-1>>);
+        JointAimTo("RightHand",     <<-1,0,0>>,<<0,-1,0>>);
+
+    // Leg
+        // Left Leg
+        string $locAim[] = `spaceLocator`;
+        string $locUp[] = `spaceLocator`;
+        string $tmp[] = `pointConstraint "LeftUpLeg" $locAim[0]`; delete $tmp;
+        string $tmp[] = `pointConstraint "LeftUpLeg" $locUp[0]`;  delete $tmp;
+        move -r -os -wd 0 -100 0 $locAim[0];
+        move -r -os -wd 0 0 10 $locUp[0];
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftUpLeg"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftLeg"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftFoot"` ; delete $tmp;
+        delete $locAim[0] $locUp[0];
+
+        // Right Leg
+        string $locAim[] = `spaceLocator`;
+        string $locUp[] = `spaceLocator`;
+        string $tmp[] = `pointConstraint "RightUpLeg" $locAim[0]`; delete $tmp;
+        string $tmp[] = `pointConstraint "RightUpLeg" $locUp[0]`;  delete $tmp;
+        move -r -os -wd 0 -100 0 $locAim[0];
+        move -r -os -wd 0 0 10 $locUp[0];
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightUpLeg"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightLeg"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightFoot"` ; delete $tmp;
+        delete $locAim[0] $locUp[0];
+
+    // Finger
+        // LeftHandThumb2
+        string $locAim[] = `spaceLocator`;
+        string $locUp[] = `spaceLocator`;
+        string $tmp[] = `pointConstraint "LeftHandThumb2" $locAim[0]`; delete $tmp;
+        string $tmp[] = `pointConstraint "LeftHandThumb2" $locUp[0]`;  delete $tmp;
+        move -r -os -wd 100 0 0 $locAim[0];
+        move -r -os -wd 0 10 0 $locUp[0];
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 0 1  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftHandThumb2"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 0 1  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftHandThumb3"` ; delete $tmp;
+        delete $locAim[0] $locUp[0];
+
+        // RightHandThumb2
+        string $locAim[] = `spaceLocator`;
+        string $locUp[] = `spaceLocator`;
+        string $tmp[] = `pointConstraint "RightHandThumb2" $locAim[0]`; delete $tmp;
+        string $tmp[] = `pointConstraint "RightHandThumb2" $locUp[0]`;  delete $tmp;
+        move -r -os -wd -100 0 0 $locAim[0];
+        move -r -os -wd 0 10 0 $locUp[0];
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 0 -1  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightHandThumb2"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 0 -1  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightHandThumb3"` ; delete $tmp;
+        delete $locAim[0] $locUp[0];
+
+        // LeftHandIndex1
+        string $locAim[] = `spaceLocator`;
+        string $locUp[] = `spaceLocator`;
+        string $tmp[] = `pointConstraint "LeftHandIndex1" $locAim[0]`; delete $tmp;
+        string $tmp[] = `pointConstraint "LeftHandIndex1" $locUp[0]`;  delete $tmp;
+        move -r -os -wd 100 0 0 $locAim[0];
+        move -r -os -wd 0 10 0 $locUp[0];
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 -1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftHandIndex1"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 -1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftHandIndex2"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 -1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftHandIndex3"` ; delete $tmp;
+        delete $locAim[0] $locUp[0];
+
+        // LeftHandMiddle1
+        string $locAim[] = `spaceLocator`;
+        string $locUp[] = `spaceLocator`;
+        string $tmp[] = `pointConstraint "LeftHandMiddle1" $locAim[0]`; delete $tmp;
+        string $tmp[] = `pointConstraint "LeftHandMiddle1" $locUp[0]`;  delete $tmp;
+        move -r -os -wd 100 0 0 $locAim[0];
+        move -r -os -wd 0 10 0 $locUp[0];
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 -1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftHandMiddle1"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 -1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftHandMiddle2"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 -1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftHandMiddle3"` ; delete $tmp;
+        delete $locAim[0] $locUp[0];
+
+        // LeftHandRing1
+        string $locAim[] = `spaceLocator`;
+        string $locUp[] = `spaceLocator`;
+        string $tmp[] = `pointConstraint "LeftHandRing1" $locAim[0]`; delete $tmp;
+        string $tmp[] = `pointConstraint "LeftHandRing1" $locUp[0]`;  delete $tmp;
+        move -r -os -wd 100 0 0 $locAim[0];
+        move -r -os -wd 0 10 0 $locUp[0];
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 -1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftHandRing1"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 -1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftHandRing2"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 -1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftHandRing3"` ; delete $tmp;
+        delete $locAim[0] $locUp[0];
+
+        // LLeftHandPinky1
+        string $locAim[] = `spaceLocator`;
+        string $locUp[] = `spaceLocator`;
+        string $tmp[] = `pointConstraint "LeftHandPinky1" $locAim[0]`; delete $tmp;
+        string $tmp[] = `pointConstraint "LeftHandPinky1" $locUp[0]`;  delete $tmp;
+        move -r -os -wd 100 0 0 $locAim[0];
+        move -r -os -wd 0 10 0 $locUp[0];
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 -1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftHandPinky1"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 -1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftHandPinky2"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 -1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "LeftHandPinky3"` ; delete $tmp;
+        delete $locAim[0] $locUp[0];
+
+        // RightHandIndex1
+        string $locAim[] = `spaceLocator`;
+        string $locUp[] = `spaceLocator`;
+        string $tmp[] = `pointConstraint "RightHandIndex1" $locAim[0]`; delete $tmp;
+        string $tmp[] = `pointConstraint "RightHandIndex1" $locUp[0]`;  delete $tmp;
+        move -r -os -wd -100 0 0 $locAim[0];
+        move -r -os -wd 0 10 0 $locUp[0];
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 -1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightHandIndex1"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 -1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightHandIndex2"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 -1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightHandIndex3"` ; delete $tmp;
+        delete $locAim[0] $locUp[0];
+
+        // RightHandMiddle1
+        string $locAim[] = `spaceLocator`;
+        string $locUp[] = `spaceLocator`;
+        string $tmp[] = `pointConstraint "RightHandMiddle1" $locAim[0]`; delete $tmp;
+        string $tmp[] = `pointConstraint "RightHandMiddle1" $locUp[0]`;  delete $tmp;
+        move -r -os -wd -100 0 0 $locAim[0];
+        move -r -os -wd 0 10 0 $locUp[0];
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 -1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightHandMiddle1"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 -1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightHandMiddle2"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 -1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightHandMiddle3"` ; delete $tmp;
+        delete $locAim[0] $locUp[0];
+
+        // RightHandRing1
+        string $locAim[] = `spaceLocator`;
+        string $locUp[] = `spaceLocator`;
+        string $tmp[] = `pointConstraint "RightHandRing1" $locAim[0]`; delete $tmp;
+        string $tmp[] = `pointConstraint "RightHandRing1" $locUp[0]`;  delete $tmp;
+        move -r -os -wd -100 0 0 $locAim[0];
+        move -r -os -wd 0 10 0 $locUp[0];
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 -1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightHandRing1"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 -1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightHandRing2"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 -1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightHandRing3"` ; delete $tmp;
+        delete $locAim[0] $locUp[0];
+
+        // LRightHandPinky1
+        string $locAim[] = `spaceLocator`;
+        string $locUp[] = `spaceLocator`;
+        string $tmp[] = `pointConstraint "RightHandPinky1" $locAim[0]`; delete $tmp;
+        string $tmp[] = `pointConstraint "RightHandPinky1" $locUp[0]`;  delete $tmp;
+        move -r -os -wd -100 0 0 $locAim[0];
+        move -r -os -wd 0 10 0 $locUp[0];
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 -1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightHandPinky1"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 -1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightHandPinky2"` ; delete $tmp;
+        string $tmp[] = `aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 -1 0  -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] "RightHandPinky3"` ; delete $tmp;
+        delete $locAim[0] $locUp[0];
+}
+
+global proc string[] JointAimTo(string $jnt, vector $aimVec, vector $upVec) {
+    if (!`objExists $jnt`) return {""};
+
+    string $locAim[] = `spaceLocator -n ($jnt+"_x" )`;
+    string $locUp[] = `spaceLocator -n  ($jnt+"_y" )`;
+    string $tmp[] = `pointConstraint $jnt $locAim[0]`; delete $tmp;
+    string $tmp[] = `pointConstraint $jnt $locUp[0]`;  delete $tmp;
+    move -r -os -wd 100 0 0 $locAim[0];
+    move -r -os -wd 0 100 0 $locUp[0];
+
+    string $tmp[] = `aimConstraint -aimVector ($aimVec.x) ($aimVec.y) ($aimVec.z) -upVector ($upVec.x) ($upVec.y) ($upVec.z) -worldUpType "object" -worldUpObject $locUp[0] $locAim[0] $jnt` ;
+    return $tmp;
+}
+
+// HIK용 조인트 정의
+global proc defineHikSkeleton() {
+
+    global string $gHikJnt[];
+
+    // HIK노드 생성
+    characterizationCreate();
+
+    for ($i=0;$i<size($gHikJnt);$i++) {
+        if (`objExists $gHikJnt[$i]`) {
+            setCharacterObject($gHikJnt[$i], "Character1", $i, 0);
+            print ($i+"\t \""+$gHikJnt[$i]+"\" --> \""+$gHikJnt[$i]+"\" map\n");
+            continue;
+        }
+        print ($i+"\t \""+$gHikJnt[$i]+"\" Skip\n");
+    }
+    //HIKCharacterizationTool;
+
+    // 잠금
+    characterizationLock();
+    rename "Character1" "HIK";
+}
+
+// Daz 정리
+{
+
+    // 이름 바꿈
+    string $prefix = "";
+    renameForHik($prefix, $gDazJnt);
+
+    // Hik
+    defineHikSkeleton();
+}
+
+// biped 정리
+{
+    string $sel[] = `ls "Attach_*" "*Dummy*"`;
+    delete $sel;
+
+    // 조인트 형태 조정
+    for ($jnt in `ls -type joint`) {
+        setAttr ($jnt+".radius") 1;
+        setAttr ($jnt+".drawStyle") 0;
+    }
+
+    // 지글용 조인트 디스플레이 조정
+    for ($jnt in `ls -type joint "*jiggle*"`) {
+        setAttr ($jnt+".radius") .5;
+    }
+
+    // 조인트에서 FBX관련 이름 모두 지움
+    string $remove[] = {"CSO2_", "FBXASC032", "BipM"};
+    for ($jnt in `ls -type joint`) {
+        string $text = $jnt;
+        for ($i=0;$i<size($remove);$i++) $text = substituteAllString($text, $remove[$i], "");
+        if ($text != "") rename $jnt $text;
+    }
+
+    // 쉐이더에서 FBX관련 이름 모두 지움
+    string $remove[] = {"FBXASC"};
+    for ($node in `ls`) {
+        string $rename = $node;
+        for ($i=0;$i<size($remove);$i++) $rename = substituteAllString($rename, $remove[$i], "");
+        if ($rename != "") {
+            catch(`rename $node $rename`);
+        }
+    }
+
+    // Biped 이름 바꿈
+    string $prefix = "";
+    renameForHik($prefix, $gBipedJnt);
+
+    // 키들 지움
+    select -r Hips ;
+    SelectHierarchy;
+    delete -channels -unitlessAnimationCurves false  -hierarchy none -controlPoints 0 -shape 1;
+
+    // 조인트 리미트 풀어줌
+    for ($jnt in `ls -type joint`) {
+        transformLimits -rx 0 0 -erx 0 0 $jnt;
+        transformLimits -ry 0 0 -ery 0 0 $jnt;
+        transformLimits -rz 0 0 -erz 0 0 $jnt;
+    }
+
+    // 그룹 노드들 생성
+    string $curve = `curve -d 3 -k 4 -k 4 -k 4 -k 5 -k 6 -k 7 -k 8 -k 9 -k 10 -k 11 -k 12 -k 12 -k 12 -p -1.598721155e-014 -3.061616998e-015 50 -p 13.06019375 -3.061616998e-015 50 -p 39.18058124 -2.39911867e-015 39.18058124 -p 55.40970938 -1.822315034e-030 2.9760663e-014 -p 39.18058124 2.39911867e-015 -39.18058124 -p -6.321585304e-015 3.392866162e-015 -55.40970938 -p -39.18058124 2.39911867e-015 -39.18058124 -p -55.40970938 9.831677308e-031 -1.605634754e-014 -p -39.18058124 -2.39911867e-015 39.18058124 -p -13.06019375 -3.061616998e-015 50 -p -1.776356839e-014 -3.061616998e-015 50`;
+    rename $curve "Reference";
+    group -n "Mesh" -em ; xform -os -piv 0 0 0;
+    setAttr "Mesh.inheritsTransform" 0;
+    parent Hips Mesh Reference;
+
+    // Tpose
+    makeTPose_Biped();
+
+    // Hik
+    defineHikSkeleton();
+}

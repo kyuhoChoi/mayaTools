@@ -1,0 +1,19 @@
+#
+# 1. 아래 스크립트를 스크립트 에디터에 넣고
+# 2. 폴더 경로 조정후 
+# 3. Ctrl+Enter
+#
+
+# 마피아
+import alfredMotionCapture as mc
+mc.makeAsset.convert( 
+    mcFolder  = r'X:\2014_mafia\3D_project\share\scenes\motionCapture\Recieved_Files', # 업체에서 받은 파일들 리스트
+    exportDir = r'X:\2014_mafia\3D_project\share\scenes\motionCapture'                 # 처리된 파일이 저장될 경로
+    )
+
+# 듀랑고
+import alfredMotionCapture as mc
+mc.makeAsset.convert( 
+    mcFolder  = r'X:\2014_Nexon_Durango\3D_project\Share\scenes\MotionCapture\Recieved_Files',  # 업체에서 받은 파일들 리스트
+    exportDir = r'X:\2014_Nexon_Durango\3D_project\Share\scenes\MotionCapture'                  # 처리된 파일이 저장될 경로
+    )
