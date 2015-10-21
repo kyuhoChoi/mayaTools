@@ -67,29 +67,6 @@ def ui():
         )
 
 def uiContents():
-    with pm.frameLayout(l='Surfacing', cll=True, mw=3, mh=3 ):
-        with pm.columnLayout( adj=True ):
-
-            with pm.rowLayout(nc=10):
-                pm.text(l='Assign Initial Shading Group : ', w= labelWidth, align='right')
-                pm.button( l='Assign', w= 160, c=pm.Callback( btn_assignInitialShader ))
-            
-            with pm.rowLayout(nc=10):
-                pm.text(l='File Texture Manager : ', w= labelWidth, align='right')
-                pm.button( l='Open UI..', w= 160, c=pm.Callback( btn_fileTextureManager ))
-                pm.button(l='d', w=20, c=pm.Callback( pm.launch, web="http://www.creativecrash.com/maya/script/filetexturemanager") )
-                pm.button(l='t', w=20, c=pm.Callback( pm.launch, web="https://www.youtube.com/watch?v=3bSkVoo6glU") )
-
-            with pm.frameLayout(l='Arnold', cll=True, mw=3, mh=3 ):
-                with pm.columnLayout( adj=True ):
-                    with pm.rowLayout(nc=10):
-                        pm.text(l='Arnold Add Attr : ', w= labelWidth, align='right')
-                        pm.button( l='Open UI..', w= 160, c=pm.Callback( btn_arnoldAddAttr ))
-
-                    with pm.rowLayout(nc=10):
-                        pm.text(l='Arnold Mesh Subdiv Render : ', w= labelWidth, align='right')
-                        pm.button( l='Arnold Mesh Subdiv Render', w= 160, c=pm.Callback( btn_arnoldSubdiv ))
-
     with pm.frameLayout(l='Preview Render', cll=True, mw=3, mh=3 ):
         with pm.columnLayout( adj=True ):
 
@@ -108,13 +85,6 @@ def uiContents():
                 pm.text(l='Backburner Script : ', w= labelWidth, align='right')
                 pm.button( l='Open UI..', w= 160, c=pm.Callback( btn_backburnner ))
 
-
-
-def btn_assignInitialShader():
-    import general as mdl
-    reload(mdl)
-    mdl.assignInitialShader()
-
 def btn_createCamSolidBG():
     import general as mdl
     reload(mdl)
@@ -129,18 +99,4 @@ def btn_backburnner():
     import render.backburnerTools as bb
     reload(bb)
     bb.ui()
-
-def btn_fileTextureManager():
-    pm.mel.source(currentPath + 'mel/FileTextureManager.mel')
-    pm.mel.FileTextureManager()
-
-def btn_arnoldAddAttr():
-    import render.arnold.arnold_addAttr_ui as arnoldTool
-    reload(arnoldTool)
-    arnoldTool.ui()
-
-def btn_arnoldSubdiv():
-    import general as mdl
-    reload(mdl)
-    mdl.arnold_subDiv()
     

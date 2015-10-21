@@ -17,20 +17,21 @@ def show():
         #helpMenu = True,     # help메뉴 뒤로감
         )
     pm.menuItem( dl='Asset', divider=True, p=alfredToolsMenu )
-    pm.menuItem( l='Modeling', p=alfredToolsMenu, en=False )
-    pm.menuItem( l='Surfacing', p=alfredToolsMenu, en=False ) 
-    pm.menuItem( l='Rigging', p=alfredToolsMenu, c=pm.Callback( menuCmd_rig ) )
+    pm.menuItem( l='Modeling',          p=alfredToolsMenu, en=False )
+    pm.menuItem( l='Surfacing',         p=alfredToolsMenu, c=pm.Callback( menuCmd_surfacing ) )
+    pm.menuItem( l='Rigging',           p=alfredToolsMenu, c=pm.Callback( menuCmd_rig ) )
     pm.menuItem( dl='Layout', divider=True, p=alfredToolsMenu )
-    pm.menuItem( l='Shot', p=alfredToolsMenu, c=pm.Callback(menuCmd_layout) )
+    pm.menuItem( l='Shot',              p=alfredToolsMenu, c=pm.Callback(menuCmd_layout) )
     pm.menuItem( dl='Animation', divider=True, p=alfredToolsMenu )
-    pm.menuItem( l='Animation', p=alfredToolsMenu, en=False  )
-    pm.menuItem( l='Motion Capture', p=alfredToolsMenu, c=pm.Callback( menuCmd_motionCapture ) )
+    pm.menuItem( l='Animation',         p=alfredToolsMenu, en=False  )
+    pm.menuItem( l='Motion Capture',    p=alfredToolsMenu, c=pm.Callback( menuCmd_motionCapture ) )
     pm.menuItem( dl='FX', divider=True, p=alfredToolsMenu )
-    pm.menuItem( l='FX', p=alfredToolsMenu, en=False ) 
+    pm.menuItem( l='FX',                p=alfredToolsMenu, en=False ) 
     pm.menuItem( dl='Render', divider=True, p=alfredToolsMenu )
-    pm.menuItem( l='Scene Assembly', p=alfredToolsMenu, en=False ) 
-    pm.menuItem( l='Lighting', p=alfredToolsMenu, en=False )       
-    pm.menuItem( l='Render', p=alfredToolsMenu, c=pm.Callback(menuCmd_render) )
+    pm.menuItem( l='Scene Assembly',    p=alfredToolsMenu, c=pm.Callback(menuCmd_sceneAssembly) )
+    pm.menuItem( l='Surfacing',         p=alfredToolsMenu, c=pm.Callback( menuCmd_surfacing ) )
+    pm.menuItem( l='Lighting',          p=alfredToolsMenu, en=False )       
+    pm.menuItem( l='Render',            p=alfredToolsMenu, c=pm.Callback(menuCmd_render) )
     
 def menuCmd_rig():
     import rig
@@ -47,3 +48,11 @@ def menuCmd_render():
 def menuCmd_layout():
     import sceneMaking
     sceneMaking.ui()
+
+def menuCmd_sceneAssembly():
+    import sceneAssembly
+    sceneAssembly.ui()
+
+def menuCmd_surfacing():
+    import surfacing
+    surfacing.ui()
