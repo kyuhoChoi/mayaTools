@@ -8,8 +8,8 @@
 
 #from exportAE import *
 
-import arnold
-reload(arnold)
+import arnoldTools
+reload(arnoldTools)
 
 from general import *
 

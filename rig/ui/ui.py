@@ -622,33 +622,34 @@ def btn_jointChainOrient():
 #
 # Skinning
 #
-def btn_multiCopySkinWeights():
-    import rig.skinning as skin
+def btn_multiCopySkinWeights():    
     '''skinCluster가 적용된 여러 오브젝트를 먼저 선택. 마지막에 skinMesh선택하고 실행'''
+    cmdStr = []
+    cmdStr.append('import rig.skinning')
+    cmdStr.append('rig.skinning.copySkinWeights()')
+    print '\n'.join(cmdStr)    
+
+    import rig.skinning as skin
     skin.copySkinWeights()
 
 def btn_setWeight( val=1 ):
+    cmdStr = []
+    cmdStr.append('import pymel.core as pm')
+    cmdStr.append('import rig.skinning')
+    cmdStr.append('rig.skinning.setWeight( pm.selected(), %s )'% val )
+    print '\n'.join(cmdStr)
+
     import rig.skinning
     rig.skinning.setWeight( pm.selected(), val )
 
-    bCmd = []
-    bCmd.append('import pymel.core as pm')
-    bCmd.append('import rig.skinning as skin')
-    bCmd.append('skin.setWeight( pm.selected(), %s )'% val )
-
-    print '\n'.join(bCmd)
-
-
 def btn_getInfluences():
+    cmdStr = []
+    cmdStr.append('import rig.skinning')
+    cmdStr.append('rig.skinning.getInfluences()')
+    print '\n'.join(cmdStr)
+
     import rig.skinning as skin
     skin.getInfluences()
-
-    bCmd = []
-    bCmd.append('import rig.skinning as skin')
-    bCmd.append('skin.getInfluences()')
-
-    print '\n'.join(bCmd)
-
 
 #
 # Ctrl

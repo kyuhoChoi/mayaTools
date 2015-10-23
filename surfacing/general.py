@@ -144,12 +144,11 @@ def saveAllRenderViewImages( saveTo=None, ext='PNG' ):
     else:
         print u"# Save complete: %d장의 render view 이미지가 저장 되었습네다.\n"%imagesWritten
 
-def arnold_subDiv():
-    sel = pm.ls(sl=True, dag=True, type='mesh')
-    for mesh in sel:
-        if mesh.intermediateObject.get():
-            continue
-        mesh.aiSubdivType.set(1)
-        mesh.aiSubdivIterations.set(2)
-
-    
+def removeTurtle():
+    # 터틀 노드 제거
+    pm.unloadPlugin( 'Turtle.mll', f=True )
+    turtleNodes = pm.ls('Turtle*')
+    for node in turtleNodes:
+        node.unlock()
+        pm.delete( node )
+        print u'"%s" 제거 성공' % node

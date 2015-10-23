@@ -102,7 +102,6 @@ def exportAbc( filePath, startFrame=0, endFrame=40, step=1, ):
     #
     pm.AbcExport( jobArg=" ".join(jobArgs) )
 
-
 def exportSG( filePath):
     #filePath = "Y:/2015_R&D_Project/11_Alembic/soo/3D_project/cache/alembic/B_01_SGs.ma"
     
@@ -132,8 +131,7 @@ def exportSG( filePath):
                 disShaderName=disShader.name()
                 disShaders.append(disShader)
             except:
-                disShaderName="0"
-
+                disShaderName=""
             shader = shadingGrps[0].surfaceShader.inputs()[0]       
             SGs.append(shadingGrps[0])
             shaders.append(shader)
@@ -161,7 +159,6 @@ def exportSG( filePath):
     # for con in connections:
         # connectionsTxt="['%s']," % ', '.join(con)
         # print "['%s']," % ', '.join(con)
-
 
 
 def importExAbc( abcFile ):
@@ -220,6 +217,7 @@ def importAbcFile():
     importFilePath=pm.textField('path_ABC2', q=True, text=True)
     #.abc를 없애준다
     filePathDeletAbc = importFilePath.replace('.abc','')
+
     pm.importFile( filePathDeletAbc+'.ma' )
     importAbc( filePathDeletAbc+'.abc' )
     connectionsTxtFile_open = open(filePathDeletAbc+'.txt')
@@ -240,20 +238,12 @@ def importAbcFile():
             pm.connectAttr(shader.outColor,shadingGrps[0].aiSurfaceShader) 
         except:
             print 'false'
-    for geo, shd, aiShd, disShd in lst:
-        node=pm.ls(geo)[0]
-        shape = node.getShape()
-        shadingGrps = shape.outputs( type='shadingEngine' )
-        #print disShd
         try:
-            print disShd
-            disShaderConnect = pm.ls(disShd)[0]
-            print disShaderConnect
-            pm.connectAttr(disShaderConnect.outColor,shadingGrps[0].displacementShader) 
+            disShader=pm.ls(disShd)[0]
+            pm.connectAttr(disShader.outColor,shadingGrps[0]..displacementShader) 
         except:
-            print "no dis"
-
-
+            print 'no dis'
+            
 
 def saveScene():
     saveFilePath = pm.textField('path_TFG2', q=True, text=True )

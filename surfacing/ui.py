@@ -172,6 +172,12 @@ def uiContents():
                 pm.button(l='d', w=20, c=pm.Callback( pm.launch, web="http://www.creativecrash.com/maya/script/filetexturemanager") )
                 pm.button(l='t', w=20, c=pm.Callback( pm.launch, web="https://www.youtube.com/watch?v=3bSkVoo6glU") )
 
+            with pm.rowLayout(nc=10):
+                pm.text(l='Remove Turtle Nodes : ', w= labelWidth, align='right')
+                pm.button( l='Remove', w= 160, c=pm.Callback( btn_removeTurtle ))
+                #pm.button(l='d', w=20, c=pm.Callback( pm.launch, web="http://www.creativecrash.com/maya/script/filetexturemanager") )
+                #pm.button(l='t', w=20, c=pm.Callback( pm.launch, web="https://www.youtube.com/watch?v=3bSkVoo6glU") )
+
     with pm.frameLayout(l='Arnold Tools', cll=True, mw=3, mh=3, bs='etchedIn'):
         with pm.columnLayout(adj=True):
             with pm.rowLayout(nc=10):
@@ -201,17 +207,22 @@ def btn_assignInitialShader():
     reload(general)
     general.assignInitialShader()
 
+def btn_removeTurtle():
+    import general
+    reload(general)
+    general.removeTurtle()
+
 def btn_fileTextureManager():
     pm.mel.source(currentPath + 'mel/FileTextureManager.mel')
     pm.mel.FileTextureManager()
 
 def btn_aiDepth():
-    import aiDepth
-    aiDepth.ui()
+    import arnoldTools.aiDepth
+    arnoldTools.aiDepth.ui()
 
 def btn_aiMatte():
-    import aiMatte
-    aiMatte.ui()
+    import arnoldTools.aiMatte
+    arnoldTools.aiMatte.ui()
 
 def btn_arnoldAddAttr():
     import arnold.arnold_addAttr_ui as arnoldTool
@@ -219,6 +230,6 @@ def btn_arnoldAddAttr():
     arnoldTool.ui()
 
 def btn_arnoldSubdiv():
-    import general
-    reload(general)
-    general.arnold_subDiv()
+    import arnoldTools
+    reload(arnoldTools)
+    arnoldTools.arnold_subDiv()

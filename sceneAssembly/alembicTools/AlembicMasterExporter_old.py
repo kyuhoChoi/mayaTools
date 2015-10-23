@@ -102,7 +102,6 @@ def exportAbc( filePath, startFrame=0, endFrame=40, step=1, ):
     #
     pm.AbcExport( jobArg=" ".join(jobArgs) )
 
-
 def exportSG( filePath):
     #filePath = "Y:/2015_R&D_Project/11_Alembic/soo/3D_project/cache/alembic/B_01_SGs.ma"
     
@@ -110,38 +109,17 @@ def exportSG( filePath):
     SGs = []
     shaders = []
     connections = []
-    aiShaders = []
-    disShaders=[]
     for node in pm.ls(sl=True, o=True):
         shape = node.getShape()        
         shadingGrps = shape.outputs( type='shadingEngine' )
-
         if shadingGrps:
-            #arnold shader탭에 세이더가 있는지 확인한다
-            try:
-                print shadingGrps[0].aiSurfaceShader.inputs()[0]
-                aiSFShader = shadingGrps[0].aiSurfaceShader.inputs()[0]
-            except:
-                print "false"
-                aiSFShader=shadingGrps[0].surfaceShader.inputs()[0]
-            
-            #dispalcement세이더가 있는가 확인한다.
-            try:
-                print shadingGrps[0].displacementShader.inputs()[0]
-                disShader=shadingGrps[0].displacementShader.inputs()[0]
-                disShaderName=disShader.name()
-                disShaders.append(disShader)
-            except:
-                disShaderName="0"
-
             shader = shadingGrps[0].surfaceShader.inputs()[0]       
             SGs.append(shadingGrps[0])
             shaders.append(shader)
-            aiShaders.append(aiSFShader)
             node_name = node.split(":")[-1]
             print node_name
             #connections.append([node_name,shader.name()])
-            connections.append([node.name(),shader.name(),aiSFShader.name(),disShaderName])
+            connections.append([node.name(),shader.name()])
 
     #.abc를 없애준다
     filePathDeletAbc = filePath.replace('.abc','')
@@ -152,7 +130,7 @@ def exportSG( filePath):
     connectionsTxtFile.close()
 	
     # export
-    exportLs = shaders+aiShaders+disShaders
+    exportLs = shaders
     pm.select(exportLs)
     pm.exportSelected( filePathDeletAbc+'.ma' )
     
@@ -161,7 +139,6 @@ def exportSG( filePath):
     # for con in connections:
         # connectionsTxt="['%s']," % ', '.join(con)
         # print "['%s']," % ', '.join(con)
-
 
 
 def importExAbc( abcFile ):
@@ -220,40 +197,16 @@ def importAbcFile():
     importFilePath=pm.textField('path_ABC2', q=True, text=True)
     #.abc를 없애준다
     filePathDeletAbc = importFilePath.replace('.abc','')
+
     pm.importFile( filePathDeletAbc+'.ma' )
     importAbc( filePathDeletAbc+'.abc' )
     connectionsTxtFile_open = open(filePathDeletAbc+'.txt')
     import pickle
     lst = pickle.load(connectionsTxtFile_open)
     print lst
-    for geo, shd, aiShd,disShd in lst:
+    for geo, shd in lst:
         cmds.select( geo )
         cmds.hyperShade( assign=shd )
-        node=pm.ls(geo)[0]
-        shape = node.getShape()
-        shadingGrps = shape.outputs( type='shadingEngine' )
-        print shadingGrps[0]
-        shader=pm.ls(aiShd)[0]
-        print shader
-        try:
-            print 'good'
-            pm.connectAttr(shader.outColor,shadingGrps[0].aiSurfaceShader) 
-        except:
-            print 'false'
-    for geo, shd, aiShd, disShd in lst:
-        node=pm.ls(geo)[0]
-        shape = node.getShape()
-        shadingGrps = shape.outputs( type='shadingEngine' )
-        #print disShd
-        try:
-            print disShd
-            disShaderConnect = pm.ls(disShd)[0]
-            print disShaderConnect
-            pm.connectAttr(disShaderConnect.outColor,shadingGrps[0].displacementShader) 
-        except:
-            print "no dis"
-
-
 
 def saveScene():
     saveFilePath = pm.textField('path_TFG2', q=True, text=True )
@@ -349,3 +302,4 @@ def ui():
                     with pm.rowLayout(nc=2, adj=2):
                         pm.text(l='',w=columnWidth1st)
                         pm.button(l='Save Scene', w=64, bgc=(0.22,0.23,0.43), c=pm.Callback(saveScene))
+            
